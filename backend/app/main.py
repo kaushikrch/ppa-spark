@@ -1,0 +1,70 @@
+import os
+from fastapi import FastAPI, Query
+from fastapi.middleware.cors import CORSMiddleware
+from .synth_data import gen_weekly_data
+from .models.elasticities import fit_elasticities
+from .models.simulator import simulate_price_change, simulate_delist
+from .models.optimizer import run_optimizer
+from .rag.indexer import rag
+from .agents.orchestrator import agentic_huddle
+
+app = FastAPI(title="iNRM PPA+Assortment API", version="1.0.0")
+
+# CORS for frontend
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+@app.get("/")
+def root():
+    return {"message": "iNRM PPA+Assortment API", "version": "1.0.0"}
+
+@app.post("/data/generate")
+def generate():
+    gen_weekly_data()
+    return {"ok": True, "message": "Data generated successfully"}
+
+@app.post("/models/train")
+def train():
+    fit_elasticities()
+    return {"ok": True, "message": "Models trained successfully"}
+
+@app.post("/simulate/price")
+def simulate_price(changes: dict):
+    agg, rows = simulate_price_change(changes)
+    return {"agg": agg.to_dict(orient="records"), "rows": rows.to_dict(orient="records")}
+
+@app.post("/simulate/delist")
+def simulate_delist_api(ids: list[int]):
+    df = simulate_delist(ids)
+    return {"rows": df.to_dict(orient="records")}
+
+@app.post("/optimize/run")
+def optimize(round: int = 1):
+    sol, kpis = run_optimizer(round=round)
+    return {"solution": sol, "kpis": kpis}
+
+@app.get("/rag/search")
+def rag_search(q: str = Query(...)):
+    hits = rag.query(q)
+    return {"hits": [{"doc": h[0], "score": h[1]} for h in hits]}
+
+@app.get("/genai/insight")
+def insight(panel_id: str, q: str = "Explain the chart succinctly"):
+    # For demo, return a templated narrative pulling RAG snippets
+    hits = rag.query(q)
+    text = f"Panel {panel_id}: Based on the data analysis, " + " ".join([h[0][:180] for h, _ in hits])
+    return {"insight": text}
+
+@app.post("/agents/huddle")
+def huddle(question: str, budget: float = 500000):
+    result = agentic_huddle(question, budget)
+    return result
+
+@app.get("/health")
+def health():
+    return {"status": "healthy"}
