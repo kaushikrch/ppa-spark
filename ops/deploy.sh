@@ -53,8 +53,8 @@ cd ui
 gcloud builds submit \
   --config cloudbuild.yaml \
   --tag $REGION-docker.pkg.dev/$PROJECT_ID/$REPO/ppa-ui:latest \
-  --substitutions=_REGION=$REGION,_REPO=$REPO,_VITE_API_BASE=$API_URL
-
+  --substitutions=_REGION=$REGION,_REPO=$REPO,_VITE_API_BASE=$API_URL \
+  --config cloudbuild.yaml
 cd ..
 
 UI_IMG="$REGION-docker.pkg.dev/$PROJECT_ID/$REPO/ppa-ui:latest"
