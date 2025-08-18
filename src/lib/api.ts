@@ -2,7 +2,7 @@ import axios from 'axios';
 
 // Prefer explicit override for dev; else same-origin /api
 const OVERRIDE = localStorage.getItem('API_BASE_OVERRIDE') || '';
-export let API_BASE: string = OVERRIDE || '/api';
+export let API_BASE: string = '/api';
 
 const api = axios.create({
   baseURL: API_BASE,

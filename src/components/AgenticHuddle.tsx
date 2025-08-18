@@ -30,6 +30,7 @@ export default function AgenticHuddle() {
   const [resp, setResp] = useState<any>(null);
   const [error, setError] = useState<string>("");
   const [apiOverride, setApiOverride] = useState<string>(localStorage.getItem('API_BASE_OVERRIDE') || "");
+  const [demoReady, setDemoReady] = useState(false);
 
   const start = async () => {
     setLoading(true); setError(""); setResp(null);
@@ -56,6 +57,7 @@ export default function AgenticHuddle() {
         const status = e2?.response?.status || e1?.response?.status;
         const msg = e2?.response?.data?.detail || e2?.response?.data?.message || e1?.response?.data?.detail || e1?.message || 'Failed to run huddle';
         setError(status ? `${status}: ${msg}` : msg);
+        setDemoReady(true);
       }
     } finally { 
       setLoading(false); 
@@ -69,6 +71,48 @@ export default function AgenticHuddle() {
     } catch (e: any) {
       alert(`API not reachable: ${e?.message}`);
     }
+  };
+
+  // Offline/demo fallback when API is unreachable
+  const runDemo = () => {
+    const now = new Date().toISOString();
+    const demo = {
+      transcript: [
+        {
+          role: 'Pricing Analyst', round: 1,
+          plan: { plan_name: 'Price realignment within ±6%', actions: [
+            { action_type: 'price_decrease', target_type: 'SKU', ids: ['330ml Cola'], magnitude_pct: 0.04, expected_impact: { units: 12000, revenue: 180000, margin: 35000 }, confidence: 0.72 },
+            { action_type: 'price_increase', target_type: 'SKU', ids: ['1L Cola'], magnitude_pct: 0.05, expected_impact: { units: -3000, revenue: 90000, margin: 42000 }, confidence: 0.68 }
+          ] },
+          kpis: { rev: 270000, margin: 77000 }, risks: ['Competitor response', 'Promo cannibalization'], timestamp: now
+        },
+        {
+          role: 'Demand Planner', round: 2,
+          plan: { plan_name: 'Shift mix to 330ml & 1L', actions: [
+            { action_type: 'assortment_push', target_type: 'Channel', ids: ['eCom'], magnitude_pct: 0.08, expected_impact: { units: 15000, revenue: 200000, margin: 60000 }, confidence: 0.7 }
+          ] },
+          kpis: { rev: 200000, margin: 60000 }, risks: ['Supply constraints'], timestamp: now
+        },
+        {
+          role: 'Finance', round: 3,
+          plan: { plan_name: 'Guardrails check', actions: [] },
+          kpis: { rev: 470000, margin: 137000 }, risks: ['GM% erosion if discounts extend'], timestamp: now
+        }
+      ],
+      final: {
+        plan_name: 'eCom re-ladder within ±6% budget',
+        assumptions: ['Competitors keep current prices', 'Inventory sufficient for 6 weeks'],
+        actions: [
+          { action_type: 'price_decrease', target_type: 'SKU', ids: ['330ml Cola'], magnitude_pct: 0.04, expected_impact: { units: 12000, revenue: 180000, margin: 35000 }, risks: ['Promo overlap'], confidence: 0.72 },
+          { action_type: 'price_increase', target_type: 'SKU', ids: ['1L Cola'], magnitude_pct: 0.05, expected_impact: { units: -3000, revenue: 90000, margin: 42000 }, risks: ['Elasticity uncertainty'], confidence: 0.68 },
+          { action_type: 'assortment_push', target_type: 'Channel', ids: ['eCom'], magnitude_pct: 0.08, expected_impact: { units: 15000, revenue: 200000, margin: 60000 }, risks: ['Supply constraints'], confidence: 0.70 }
+        ],
+        rationale: 'Meets NSV↑ and protects GM% within ±6% price move guardrails.'
+      },
+      citations: ['RAG: Elasticity matrix v1.2', 'RAG: Promo playbook FY25']
+    };
+    setResp(demo);
+    setError('');
   };
 
   const handleTileClick = (question: string) => {
@@ -152,8 +196,12 @@ export default function AgenticHuddle() {
       </Card>
 
       {error && (
-        <Card className="p-4 bg-destructive/10 border-destructive/20">
+        <Card className="p-4 bg-destructive/10 border-destructive/20 space-y-3">
           <div className="text-destructive text-sm font-medium">{error}</div>
+          <div className="text-xs text-muted-foreground">API base: <span className="font-mono">{API_BASE}</span>. Check Advanced API settings above or try Demo.</div>
+          {demoReady && (
+            <button onClick={runDemo} className="px-3 py-2 rounded-md bg-primary text-primary-foreground w-fit">Run Demo Huddle</button>
+          )}
         </Card>
       )}
 
