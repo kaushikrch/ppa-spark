@@ -61,15 +61,16 @@ const PPA: React.FC = () => {
                 label={{ value: 'Pack Size (ml)', position: 'insideBottom', offset: -10 }}
               />
               <YAxis 
-                dataKey="price"
+                dataKey="ppm"
                 type="number"
-                domain={[1.5, 6]}
+                domain={[0.003, 0.011]}
                 stroke="hsl(var(--muted-foreground))"
-                label={{ value: 'Price (₹)', angle: -90, position: 'insideLeft' }}
+                tickFormatter={(v) => Number(v).toFixed(4)}
+                label={{ value: 'Price per ml (₹/ml)', angle: -90, position: 'insideLeft' }}
               />
               <Tooltip 
                 cursor={{ strokeDasharray: '3 3' }}
-                formatter={(value, name) => [`₹${value}`, name]}
+                formatter={(value, name) => [`₹${Number(value).toFixed(4)}/ml`, name]}
                 labelFormatter={(value) => `${value}ml`}
                 contentStyle={{ 
                   backgroundColor: 'hsl(var(--card))', 
@@ -79,13 +80,13 @@ const PPA: React.FC = () => {
               />
               <Scatter 
                 name="Premium Tier" 
-                data={priceLadder.map(d => ({ value: d.value, price: d.premium, pack: d.pack }))}
+                data={priceLadder.map(d => ({ value: d.value, ppm: d.premium / d.value, pack: d.pack }))}
                 fill="hsl(var(--primary))"
                 r={6}
               />
               <Scatter 
                 name="Core Tier" 
-                data={priceLadder.map(d => ({ value: d.value, price: d.core, pack: d.pack }))}
+                data={priceLadder.map(d => ({ value: d.value, ppm: d.core / d.value, pack: d.pack }))}
                 fill="hsl(var(--primary-glow))"
                 r={6}
               />
@@ -93,7 +94,7 @@ const PPA: React.FC = () => {
                 name="Competitor Avg" 
                 data={priceLadder.map(d => ({ 
                   value: d.value, 
-                  price: d.competitors.reduce((a, b) => a + b, 0) / d.competitors.length,
+                  ppm: (d.competitors.reduce((a, b) => a + b, 0) / d.competitors.length) / d.value,
                   pack: d.pack 
                 }))}
                 fill="hsl(var(--muted))"
@@ -187,17 +188,18 @@ const PPA: React.FC = () => {
                   label={{ value: 'Pack Size (ml)', position: 'insideBottom', offset: -10 }}
                 />
                 <YAxis 
-                  dataKey="price"
+                  dataKey="ppm"
                   type="number"
-                  domain={[2.5, 5.5]}
+                  domain={[0.004, 0.010]}
                   stroke="hsl(var(--muted-foreground))"
-                  label={{ value: 'Price (₹)', angle: -90, position: 'insideLeft' }}
+                  tickFormatter={(v) => Number(v).toFixed(4)}
+                  label={{ value: 'Price per ml (₹/ml)', angle: -90, position: 'insideLeft' }}
                 />
                 <Tooltip 
                   cursor={{ strokeDasharray: '3 3' }}
                   formatter={(value, name, props) => [
-                    name === 'price' ? `₹${value}` : value,
-                    name === 'price' ? 'Target Price' : 'Gap Score'
+                    name === 'ppm' ? `₹${Number(value).toFixed(4)}/ml` : value,
+                    name === 'ppm' ? 'Target PPM' : 'Gap Score'
                   ]}
                   labelFormatter={(label, payload) => 
                     payload?.[0] ? `${payload[0].payload.size}ml ${payload[0].payload.segment}` : label
@@ -210,13 +212,23 @@ const PPA: React.FC = () => {
                 />
                 <Scatter 
                   name="Feasible Opportunities" 
-                  data={whitespaceData.filter(d => d.feasible)}
+                  data={whitespaceData.filter(d => d.feasible).map(d => ({ 
+                    size: d.size, 
+                    ppm: d.price / d.size,
+                    segment: d.segment,
+                    gap_score: d.gap_score
+                  }))}
                   fill="hsl(var(--success))"
                   r={8}
                 />
                 <Scatter 
                   name="High Risk Opportunities" 
-                  data={whitespaceData.filter(d => !d.feasible)}
+                  data={whitespaceData.filter(d => !d.feasible).map(d => ({ 
+                    size: d.size, 
+                    ppm: d.price / d.size,
+                    segment: d.segment,
+                    gap_score: d.gap_score
+                  }))}
                   fill="hsl(var(--warning))"
                   r={6}
                 />
