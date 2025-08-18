@@ -12,7 +12,7 @@ def _load():
         pd.read_sql("select * from sku_master", con),
     )
 
-# Simple what-if using elasticities; cross effect via brand-level weights
+# Simple what-if using elasticities; cross effects currently neutral (cross_factor = 1.0)
 
 def simulate_price_change(sku_pct_changes: dict, weeks=None, retailer_ids=None):
     price, demand, costs, elast, sku = _load()
@@ -34,7 +34,8 @@ def simulate_price_change(sku_pct_changes: dict, weeks=None, retailer_ids=None):
     own_factor = np.exp(df["own_elast"] * np.log(np.maximum(df["new_price"], 0.01) / np.maximum(df["net_price"], 0.01)))
 
     # cross effect: distribute by brand similarity
-    cross_factor = 1.0
+    cross_factor = 1.0  # cross effects are neutral
+    # TODO: incorporate brand-level cross effects when similarity weights are defined
     # (For demo simplicity, we keep cross factor neutral; handled in optimizer)
 
     df["new_units"] = (df["units"] * own_factor).astype(int)
