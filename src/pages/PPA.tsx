@@ -18,9 +18,9 @@ const PPA: React.FC = () => {
   // Price per ml analysis
   const ppmData = priceLadder.map(item => ({
     pack: item.pack,
-    ppm_premium: (item.premium / item.value * 1000).toFixed(2),
-    ppm_core: (item.core / item.value * 1000).toFixed(2),
-    ppm_comp_avg: (item.competitors.reduce((a, b) => a + b, 0) / item.competitors.length / item.value * 1000).toFixed(2),
+    ppm_premium: Number((item.premium / item.value * 1000).toFixed(2)),
+    ppm_core: Number((item.core / item.value * 1000).toFixed(2)),
+    ppm_comp_avg: Number((item.competitors.reduce((a, b) => a + b, 0) / item.competitors.length / item.value * 1000).toFixed(2)),
     value: item.value
   }));
 
@@ -101,9 +101,9 @@ const PPA: React.FC = () => {
                     borderRadius: '8px'
                   }} 
                 />
-                <Bar dataKey="ppm_premium" fill="hsl(var(--primary))" radius={[2, 2, 0, 0]} />
-                <Bar dataKey="ppm_core" fill="hsl(var(--primary-glow))" radius={[2, 2, 0, 0]} />
-                <Bar dataKey="ppm_comp_avg" fill="hsl(var(--muted))" radius={[2, 2, 0, 0]} />
+                <Bar dataKey="ppm_premium" name="Premium PPM" fill="hsl(var(--primary))" radius={[2, 2, 0, 0]} />
+                <Bar dataKey="ppm_core" name="Core PPM" fill="hsl(var(--primary-glow))" radius={[2, 2, 0, 0]} />
+                <Bar dataKey="ppm_comp_avg" name="Competitor Avg" fill="hsl(var(--muted))" radius={[2, 2, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>

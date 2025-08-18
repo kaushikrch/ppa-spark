@@ -55,10 +55,36 @@ def rag_search(q: str = Query(...)):
 
 @app.get("/genai/insight")
 def insight(panel_id: str, q: str = "Explain the chart succinctly"):
-    # For demo, return a templated narrative pulling RAG snippets
+    import google.generativeai as genai
+    
+    # Configure Gemini
+    api_key = os.getenv('GEMINI_API_KEY')
+    if not api_key:
+        return {"insight": "Gemini API key not configured."}
+    
+    genai.configure(api_key=api_key)
+    model = genai.GenerativeModel('gemini-1.5-flash')
+    
+    # Get relevant data context from RAG
     hits = rag.query(q)
-    text = f"Panel {panel_id}: Based on the data analysis, " + " ".join([h[0][:180] for h, _ in hits])
-    return {"insight": text}
+    context = "\n".join([h[0][:800] for h, _ in hits[:2]])
+    
+    # Generate insight using Gemini
+    prompt = f"""As a data analyst, explain this chart/data insight concisely:
+
+Panel: {panel_id}
+Question: {q}
+
+Data Context:
+{context}
+
+Provide a 2-3 sentence insight focusing on key business implications."""
+
+    try:
+        response = model.generate_content(prompt)
+        return {"insight": response.text}
+    except Exception as e:
+        return {"insight": f"Unable to generate insight: {str(e)}"}
 
 @app.post("/agents/huddle")
 def huddle(question: str, budget: float = 500000):

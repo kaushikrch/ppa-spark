@@ -3,7 +3,7 @@ import { Card } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import KPICards from '../components/KPICards';
 import ChartWithInsight from '../components/ChartWithInsight';
-import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, ComposedChart } from 'recharts';
 import { TrendingUp, Package, Target, Zap, RefreshCw } from 'lucide-react';
 import { apiService } from '../lib/api';
 
@@ -24,17 +24,17 @@ const Landing: React.FC = () => {
   ];
 
   const channelData = [
-    { channel: 'ModernTrade', value: 45, color: '#8B5CF6' },
-    { channel: 'GeneralTrade', value: 35, color: '#A78BFA' },
-    { channel: 'eCom', value: 20, color: '#C4B5FD' },
+    { channel: 'ModernTrade', value: 45, color: 'hsl(var(--primary))' },
+    { channel: 'GeneralTrade', value: 35, color: 'hsl(var(--primary-glow))' },
+    { channel: 'eCom', value: 20, color: 'hsl(var(--accent))' },
   ];
 
   const brandPerformance = [
-    { brand: 'Aurel', revenue: 3.2, margin: 28.5, change: 4.2 },
-    { brand: 'Novis', revenue: 2.8, margin: 24.1, change: -1.8 },
-    { brand: 'Verra', revenue: 2.1, margin: 32.8, change: 7.3 },
-    { brand: 'Kairo', revenue: 1.9, margin: 22.4, change: -2.1 },
-    { brand: 'Lumio', revenue: 2.4, margin: 35.2, change: 8.7 },
+    { brand: 'Aurel', revenue: 3.2, margin: 22.5, change: 4.2 },
+    { brand: 'Novis', revenue: 2.8, margin: 26.1, change: -1.8 },
+    { brand: 'Verra', revenue: 2.1, margin: 28.8, change: 7.3 },
+    { brand: 'Kairo', revenue: 1.9, margin: 29.4, change: -2.1 },
+    { brand: 'Lumio', revenue: 2.4, margin: 25.2, change: 8.7 },
   ];
 
   const initializeData = async () => {
@@ -135,12 +135,15 @@ const Landing: React.FC = () => {
                   outerRadius={100}
                   paddingAngle={5}
                   dataKey="value"
+                  label={({ channel, value }) => `${channel}: ${value}%`}
+                  labelLine={false}
                 >
                   {channelData.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
                 </Pie>
                 <Tooltip 
+                  formatter={(value, name) => [`${value}%`, name]}
                   contentStyle={{ 
                     backgroundColor: 'hsl(var(--card))', 
                     border: '1px solid hsl(var(--border))',
@@ -149,28 +152,44 @@ const Landing: React.FC = () => {
                 />
               </PieChart>
             </ResponsiveContainer>
+            <div className="flex justify-center mt-4 space-x-6">
+              {channelData.map((entry, index) => (
+                <div key={index} className="flex items-center space-x-2">
+                  <div 
+                    className="w-3 h-3 rounded-full" 
+                    style={{ backgroundColor: entry.color }}
+                  />
+                  <span className="text-sm text-muted-foreground">{entry.channel}</span>
+                </div>
+              ))}
+            </div>
           </div>
         </ChartWithInsight>
       </div>
 
       {/* Brand Performance */}
-      <ChartWithInsight panelId="brand-performance" title="Brand Performance Matrix">
+      <ChartWithInsight panelId="brand-performance" title="Brand Performance: Revenue vs Margin %">
         <div className="h-80">
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={brandPerformance} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+            <ComposedChart data={brandPerformance} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
               <XAxis dataKey="brand" stroke="hsl(var(--muted-foreground))" />
-              <YAxis stroke="hsl(var(--muted-foreground))" />
+              <YAxis yAxisId="left" stroke="hsl(var(--muted-foreground))" label={{ value: 'Revenue (₹Cr)', angle: -90, position: 'insideLeft' }} />
+              <YAxis yAxisId="right" orientation="right" stroke="hsl(var(--success))" label={{ value: 'Margin %', angle: 90, position: 'insideRight' }} />
               <Tooltip 
+                formatter={(value, name) => [
+                  name === 'revenue' ? `₹${value}Cr` : `${value}%`,
+                  name === 'revenue' ? 'Revenue' : 'Margin %'
+                ]}
                 contentStyle={{ 
                   backgroundColor: 'hsl(var(--card))', 
                   border: '1px solid hsl(var(--border))',
                   borderRadius: '8px'
                 }} 
               />
-              <Bar dataKey="revenue" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
-              <Bar dataKey="margin" fill="hsl(var(--primary-glow))" radius={[4, 4, 0, 0]} />
-            </BarChart>
+              <Bar yAxisId="left" dataKey="revenue" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+              <Line yAxisId="right" type="monotone" dataKey="margin" stroke="hsl(var(--success))" strokeWidth={3} dot={{ fill: 'hsl(var(--success))', strokeWidth: 2, r: 4 }} />
+            </ComposedChart>
           </ResponsiveContainer>
         </div>
       </ChartWithInsight>

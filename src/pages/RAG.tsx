@@ -25,36 +25,9 @@ const RAG: React.FC = () => {
       setResults(searchResults);
     } catch (error) {
       console.error('Search failed:', error);
-      // Mock results for demo
-      setResults([
-        {
-          doc: `TABLE:sku_master
-sku_id,brand,subcat,pack_size_ml,pack_type,tier,sugar_free,flavor,launch_week
-1001,Aurel,CSD,330,Can,Core,0,Cola,12
-1002,Novis,CSD,500,PET,Premium,1,Orange,8
-1003,Verra,CSD,1000,PET,Premium,0,Berry,15
-...`,
-          score: 0.85
-        },
-        {
-          doc: `TABLE:price_weekly
-week,retailer_id,sku_id,list_price,net_price,promo_flag,promo_depth,discount_spend
-1,1,1001,2.45,2.20,1,0.10,0.25
-2,1,1001,2.45,2.45,0,0.00,0.00
-3,2,1002,3.30,2.97,1,0.10,0.33
-...`,
-          score: 0.72
-        },
-        {
-          doc: `TABLE:elasticities
-sku_id,own_elast,cross_elast_json,stat_sig
-1001,-1.24,{"Novis":0.15,"Verra":0.08},1
-1002,-0.89,{"Aurel":0.12,"Kairo":0.18},1
-1003,-1.56,{"Lumio":0.22,"Aurel":0.09},1
-...`,
-          score: 0.68
-        }
-      ]);
+      // Offline fallback with contextual results based on query
+      const mockResults = generateMockResults(query);
+      setResults(mockResults);
     } finally {
       setLoading(false);
     }
@@ -79,6 +52,65 @@ sku_id,own_elast,cross_elast_json,stat_sig
   };
 
   // Sample queries for quick testing
+  // Generate mock results based on query context
+  const generateMockResults = (query: string) => {
+    const lowerQuery = query.toLowerCase();
+    
+    if (lowerQuery.includes('elasticity')) {
+      return [
+        {
+          doc: `TABLE:elasticities
+sku_id,own_elast,cross_elast_json,stat_sig
+1001,-1.24,{"Novis":0.15,"Verra":0.08},1
+1002,-0.89,{"Aurel":0.12,"Kairo":0.18},1
+1003,-1.56,{"Lumio":0.22,"Aurel":0.09},1
+1004,-0.78,{"Novis":0.14,"Verra":0.11},0
+1005,-1.12,{"Kairo":0.16,"Aurel":0.13},1`,
+          score: 0.92
+        }
+      ];
+    } else if (lowerQuery.includes('price') || lowerQuery.includes('promo')) {
+      return [
+        {
+          doc: `TABLE:price_weekly
+week,retailer_id,sku_id,list_price,net_price,promo_flag,promo_depth,discount_spend
+1,1,1001,2.45,2.20,1,0.10,0.25
+2,1,1001,2.45,2.45,0,0.00,0.00
+3,2,1002,3.30,2.97,1,0.10,0.33
+4,1,1003,4.25,4.25,0,0.00,0.00
+5,3,1001,2.50,2.00,1,0.20,0.50`,
+          score: 0.88
+        }
+      ];
+    } else if (lowerQuery.includes('brand') || lowerQuery.includes('sku')) {
+      return [
+        {
+          doc: `TABLE:sku_master
+sku_id,brand,subcat,pack_size_ml,pack_type,tier,sugar_free,flavor,launch_week
+1001,Aurel,CSD,330,Can,Core,0,Cola,12
+1002,Novis,CSD,500,PET,Premium,1,Orange,8
+1003,Verra,CSD,1000,PET,Premium,0,Berry,15
+1004,Kairo,CSD,250,Can,Value,0,Lime,20
+1005,Lumio,CSD,1500,PET,Premium,1,Ginger,5`,
+          score: 0.85
+        }
+      ];
+    } else {
+      return [
+        {
+          doc: `TABLE:demand_weekly
+week,retailer_id,sku_id,units,revenue,base_units,uplift_units
+1,1,1001,1250,2750,1000,250
+2,1,1002,890,2937,780,110
+3,2,1003,654,2779,590,64
+4,1,1004,1420,2769,1200,220
+5,3,1005,567,3119,490,77`,
+          score: 0.75
+        }
+      ];
+    }
+  };
+
   const sampleQueries = [
     "What are the elasticity values for premium brands?",
     "Show me price changes for SKUs with high promotion depth",

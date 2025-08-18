@@ -41,8 +41,8 @@ const Navigation = () => {
           <h1 className="text-xl font-bold text-foreground">iNRM Dashboard</h1>
           <p className="text-sm text-muted-foreground">PPA + Assortment Intelligence</p>
         </div>
-        <Badge className="bg-gradient-primary">
-          Agentic AI
+        <Badge variant="outline" className="text-primary border-primary">
+          v1.0.0
         </Badge>
       </div>
       

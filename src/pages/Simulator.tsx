@@ -42,18 +42,38 @@ const Simulator: React.FC = () => {
       setSimulationResult(response.data);
     } catch (error) {
       console.error('Simulation failed:', error);
-      // Mock result for demo
+      // Calculate elasticity-based impact for demo
+      let totalVolumeImpact = 0;
+      let totalRevenueImpact = 0;
+      let totalMarginImpact = 0;
+      
+      skus.forEach(sku => {
+        const change = priceChanges[sku.id] || 0;
+        if (change !== 0) {
+          // Volume impact = elasticity * price change
+          const volumeImpact = sku.elasticity * change;
+          // Revenue impact includes price and volume effects
+          const revenueImpact = change + volumeImpact;
+          // Margin impact is amplified due to leverage
+          const marginImpact = revenueImpact * 1.8;
+          
+          totalVolumeImpact += volumeImpact * 0.2; // Weight by SKU contribution
+          totalRevenueImpact += revenueImpact * 0.2;
+          totalMarginImpact += marginImpact * 0.2;
+        }
+      });
+
       setSimulationResult({
         agg: [
-          { week: 1, units: 85000, revenue: 12400000, margin: 3100000 },
-          { week: 2, units: 87200, revenue: 12750000, margin: 3250000 },
-          { week: 3, units: 84500, revenue: 12600000, margin: 3180000 },
-          { week: 4, units: 88900, revenue: 13100000, margin: 3420000 },
+          { week: 1, units: 85000 * (1 + totalVolumeImpact), revenue: 12400000 * (1 + totalRevenueImpact), margin: 3100000 * (1 + totalMarginImpact) },
+          { week: 2, units: 87200 * (1 + totalVolumeImpact), revenue: 12750000 * (1 + totalRevenueImpact), margin: 3250000 * (1 + totalMarginImpact) },
+          { week: 3, units: 84500 * (1 + totalVolumeImpact), revenue: 12600000 * (1 + totalRevenueImpact), margin: 3180000 * (1 + totalMarginImpact) },
+          { week: 4, units: 88900 * (1 + totalVolumeImpact), revenue: 13100000 * (1 + totalRevenueImpact), margin: 3420000 * (1 + totalMarginImpact) },
         ],
         summary: {
-          volume_change: -1.8,
-          revenue_change: 4.2,
-          margin_change: 8.7
+          volume_change: totalVolumeImpact * 100,
+          revenue_change: totalRevenueImpact * 100,
+          margin_change: totalMarginImpact * 100
         }
       });
     } finally {
@@ -158,7 +178,7 @@ const Simulator: React.FC = () => {
                           Elasticity: {sku.elasticity}
                         </Badge>
                         <Badge className={`text-xs ${getElasticityColor(sku.elasticity)}`}>
-                          {sku.elasticity > -0.8 ? 'High Sensitivity' : sku.elasticity > -1.2 ? 'Medium' : 'Low Sensitivity'}
+                          {sku.elasticity > -0.8 ? 'Price Sensitive' : sku.elasticity > -1.2 ? 'Moderate' : 'Inelastic'}
                         </Badge>
                       </div>
                     </div>

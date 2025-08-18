@@ -47,15 +47,15 @@ const Elasticities: React.FC = () => {
   const elasticityInsights = [
     { 
       brand: 'Verra', 
-      insight: 'Highest own-price elasticity (-1.56) indicates premium positioning with loyal base',
-      action: 'Opportunity for strategic price increases',
-      risk: 'Low'
+      insight: 'High elasticity (-1.56) means very price sensitive - avoid increases',
+      action: 'Focus on value proposition and volume efficiency',
+      risk: 'High'
     },
     {
       brand: 'Kairo',
-      insight: 'Low elasticity (-0.78) suggests high price sensitivity in value segment',
-      action: 'Focus on volume-driven growth and efficiency',
-      risk: 'Medium'
+      insight: 'Low elasticity (-0.78) indicates inelastic demand - pricing opportunity',
+      action: 'Strategic price increases with limited volume loss',
+      risk: 'Low'
     },
     {
       brand: 'Novis-Aurel',
@@ -81,11 +81,21 @@ const Elasticities: React.FC = () => {
         <ChartWithInsight panelId="attribute-importance" title="Attribute Importance (Random Forest SHAP)">
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={attributeData} layout="horizontal">
+              <BarChart data={attributeData} layout="horizontal" margin={{ left: 80 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis type="number" stroke="hsl(var(--muted-foreground))" />
-                <YAxis dataKey="attribute" type="category" stroke="hsl(var(--muted-foreground))" width={80} />
+                <XAxis 
+                  type="number" 
+                  stroke="hsl(var(--muted-foreground))"
+                  label={{ value: 'Importance Score', position: 'insideBottom', offset: -10 }}
+                />
+                <YAxis 
+                  dataKey="attribute" 
+                  type="category" 
+                  stroke="hsl(var(--muted-foreground))" 
+                  width={80}
+                />
                 <Tooltip 
+                  formatter={(value) => [`${(Number(value) * 100).toFixed(1)}%`, 'Importance']}
                   contentStyle={{ 
                     backgroundColor: 'hsl(var(--card))', 
                     border: '1px solid hsl(var(--border))',
