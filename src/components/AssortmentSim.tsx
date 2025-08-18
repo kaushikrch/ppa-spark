@@ -11,7 +11,22 @@ interface AssortmentSimProps {
 
 const AssortmentSim: React.FC<AssortmentSimProps> = ({ className = "" }) => {
   const [selectedForDelist, setSelectedForDelist] = useState<number[]>([]);
-  const [simulationResult, setSimulationResult] = useState<any>(null);
+  interface SimulationRow {
+    id: number;
+    brand: string;
+    pack: string;
+    tier: string;
+    share?: number;
+    units: number;
+    new_units?: number;
+    volume_gain?: number;
+  }
+
+  interface DelistResult {
+    rows: SimulationRow[];
+  }
+
+  const [simulationResult, setSimulationResult] = useState<DelistResult | null>(null);
   const [loading, setLoading] = useState(false);
 
   // Mock SKU data
@@ -123,7 +138,7 @@ const AssortmentSim: React.FC<AssortmentSimProps> = ({ className = "" }) => {
           
           {simulationResult ? (
             <div className="space-y-3">
-              {simulationResult.rows.slice(0, 6).map((sku: any) => (
+              {simulationResult.rows.slice(0, 6).map((sku: SimulationRow) => (
                 <div key={sku.id} className="p-3 rounded-lg bg-card border border-border">
                   <div className="flex items-center justify-between">
                     <div className="space-y-1">
@@ -147,7 +162,7 @@ const AssortmentSim: React.FC<AssortmentSimProps> = ({ className = "" }) => {
               <div className="mt-4 p-3 rounded-lg bg-primary/10 border border-primary/20">
                 <p className="text-sm text-primary font-medium">
                   Total volume transferred: {simulationResult.rows
-                    .reduce((sum: number, sku: any) => sum + (sku.volume_gain || 0), 0)
+                    .reduce((sum: number, sku: SimulationRow) => sum + (sku.volume_gain || 0), 0)
                     .toLocaleString()} units
                 </p>
               </div>

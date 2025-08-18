@@ -7,13 +7,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import ChartWithInsight from '../components/ChartWithInsight';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { Play, RotateCcw, TrendingUp, TrendingDown, DollarSign, Package } from 'lucide-react';
-import { apiService } from '../lib/api';
+import { apiService, SimulationResult } from '../lib/api';
 
 const Simulator: React.FC = () => {
   const [priceChanges, setPriceChanges] = useState<Record<string, number>>({});
   const [selectedRegion, setSelectedRegion] = useState<string>('All');
   const [selectedChannel, setSelectedChannel] = useState<string>('All');
-  const [simulationResult, setSimulationResult] = useState<any>(null);
+  const [simulationResult, setSimulationResult] = useState<SimulationResult | null>(null);
   const [loading, setLoading] = useState(false);
 
   // Mock SKU data for controls

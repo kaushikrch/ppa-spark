@@ -18,12 +18,17 @@ export interface KPIData {
 }
 
 export interface SimulationResult {
-  agg: Array<{week: number; units: number; revenue: number; margin: number}>;
-  rows: Array<any>;
+  agg: Array<{ week: number; units: number; revenue: number; margin: number }>;
+  rows: Array<Record<string, unknown>>;
+  summary?: {
+    volume_change: number;
+    revenue_change: number;
+    margin_change: number;
+  };
 }
 
 export interface OptimizationResult {
-  solution: Array<any>;
+  solution: Array<Record<string, unknown>>;
   kpis: {
     status: string;
     n_near_bound: number;
@@ -37,12 +42,12 @@ export interface HuddleResult {
     role: string;
     content: string;
     evidence?: string[];
-    kpis?: any;
-    recommendation?: any;
+    kpis?: Record<string, unknown>;
+    recommendation?: Record<string, unknown>;
     timestamp: string;
   }>;
   stopped_after_rounds: number;
-  final_recommendation?: any;
+  final_recommendation?: Record<string, unknown>;
 }
 
 // API calls (unchanged except they now always go through /api)
@@ -50,9 +55,12 @@ export const apiService = {
   generateData: () => api.post("/data/generate"),
   trainModels: () => api.post("/models/train"),
 
-  simulatePrice: (changes: Record<string, number>): Promise<{data: SimulationResult}> =>
-    api.post("/simulate/price", changes),
-  simulateDelist: (ids: number[]): Promise<{data: {rows: any[]}}> =>
+  simulatePrice: (
+    changes: Record<string, number>
+  ): Promise<{ data: SimulationResult }> => api.post("/simulate/price", changes),
+  simulateDelist: (
+    ids: number[]
+  ): Promise<{ data: { rows: Array<Record<string, unknown>> } }> =>
     api.post("/simulate/delist", ids),
 
   runOptimizer: (round: number = 1): Promise<{data: OptimizationResult}> =>

@@ -23,11 +23,33 @@ type PlanJSON = {
   rationale?: string;
 };
 
+interface HuddleTranscriptEntry {
+  role: string;
+  round: number;
+  plan?: PlanJSON;
+  kpis?: Record<string, unknown>;
+  risks?: string[];
+}
+
+interface HuddleCitation {
+  table: string;
+  score?: number;
+  snippet?: string;
+  text?: string;
+}
+
+interface HuddleResponse {
+  transcript?: HuddleTranscriptEntry[];
+  final?: PlanJSON;
+  citations?: HuddleCitation[];
+  error?: string;
+}
+
 export default function AgenticHuddle() {
   const [q, setQ] = useState("");
   const [budget, setBudget] = useState<number>(500000);
   const [loading, setLoading] = useState(false);
-  const [resp, setResp] = useState<any>(null);
+  const [resp, setResp] = useState<HuddleResponse | null>(null);
   const [error, setError] = useState<string>("");
   const [apiOverride, setApiOverride] = useState<string>(localStorage.getItem('API_BASE_OVERRIDE') || "");
   const [demoReady, setDemoReady] = useState(false);
@@ -39,28 +61,36 @@ export default function AgenticHuddle() {
     const legacyUrl = `${API_BASE}/agents/huddle`;
     try {
       // Preferred: JSON body to /huddle/run
-      const r = await axios.post(url, { q, budget }, { 
+      const r = await axios.post(url, { q, budget }, {
         timeout: 60000,
         headers: { 'Content-Type': 'application/json' }
       });
       console.log('[Huddle] Response received:', r.data);
       setResp(r.data);
-    } catch (e1: any) {
-      console.warn('[Huddle] Primary endpoint failed, trying legacy...', e1?.response?.status, e1?.message);
+    } catch (e1: unknown) {
+      console.warn('[Huddle] Primary endpoint failed, trying legacy...', e1);
       try {
         // Fallback: legacy endpoint with query params
         const r2 = await axios.post(legacyUrl, null, { params: { question: q, budget }, timeout: 60000 });
         console.log('[Huddle] Legacy response:', r2.data);
         setResp(r2.data);
-      } catch (e2: any) {
+      } catch (e2: unknown) {
         console.error('[Huddle] Both endpoints failed', { primary: e1, legacy: e2 });
-        const status = e2?.response?.status || e1?.response?.status;
-        const msg = e2?.response?.data?.detail || e2?.response?.data?.message || e1?.response?.data?.detail || e1?.message || 'Failed to run huddle';
+        let status: number | undefined;
+        let msg = 'Failed to run huddle';
+        if (axios.isAxiosError(e2)) {
+          status = e2.response?.status;
+          const data = e2.response?.data as { detail?: string; message?: string } | undefined;
+          msg = data?.detail || data?.message || e2.message;
+        } else if (axios.isAxiosError(e1)) {
+          status = e1.response?.status;
+          msg = e1.message;
+        }
         setError(status ? `${status}: ${msg}` : msg);
         setDemoReady(true);
       }
-    } finally { 
-      setLoading(false); 
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -68,15 +98,15 @@ export default function AgenticHuddle() {
     try {
       const r = await axios.get(`${API_BASE}/healthz`, { timeout: 10000 });
       alert(`API OK: ${JSON.stringify(r.data)}`);
-    } catch (e: any) {
-      alert(`API not reachable: ${e?.message}`);
+    } catch (e: unknown) {
+      alert(`API not reachable: ${e instanceof Error ? e.message : String(e)}`);
     }
   };
 
   // Offline/demo fallback when API is unreachable
   const runDemo = () => {
     const now = new Date().toISOString();
-    const demo = {
+    const demo: HuddleResponse = {
       transcript: [
         {
           role: 'Pricing Analyst', round: 1,
@@ -215,7 +245,7 @@ export default function AgenticHuddle() {
         <Card className="p-6 bg-background border shadow-elegant">
           <div className="text-lg font-semibold mb-4 text-foreground">Debate Transcript (3 rounds max)</div>
           <div className="space-y-3">
-            {resp.transcript.map((t: any, idx: number) => (
+            {resp.transcript.map((t: HuddleTranscriptEntry, idx: number) => (
               <div key={idx} className="p-4 bg-muted rounded-xl border">
                 <div className="text-xs text-muted-foreground font-medium mb-2">
                   {t.role} • Round {t.round}
@@ -333,7 +363,7 @@ export default function AgenticHuddle() {
           </summary>
           <Card className="mt-2 p-4 bg-background border">
             <div className="space-y-3">
-              {resp.citations.map((c: any, i: number) => (
+              {resp.citations.map((c: HuddleCitation, i: number) => (
                 <div key={i} className="p-3 bg-muted/50 rounded-lg border">
                   <div className="text-sm font-semibold text-foreground mb-2">
                     {c.table} • Score: {c.score?.toFixed(3) || 'N/A'}
