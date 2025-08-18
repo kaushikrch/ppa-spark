@@ -15,6 +15,7 @@ def fit_elasticities():
     demand = pd.read_sql("select * from demand_weekly", con)
     comp = pd.read_sql("select * from competitor_weekly", con)
     sku = pd.read_sql("select * from sku_master", con)
+    brands = sorted(comp["brand"].unique())
 
     df = demand.merge(price, on=["week","retailer_id","sku_id"]).merge(sku, on="sku_id")
     # competitor brand avg price feature per row
@@ -25,21 +26,23 @@ def fit_elasticities():
     imp_rows = []
 
     for sku_id, sdf in df.groupby("sku_id"):
-        if len(sdf) < 30: continue
-        y = np.log1p(sdf["units"]).values.reshape(-1,1)
-        X_cols = ["net_price", "promo_flag"] + list(set(comp["brand"].unique()))
-        X = sdf[["net_price","promo_flag"]].copy()
-        for b in set(comp["brand"].unique()):
+        if len(sdf) < 30:
+            continue
+        X = sdf[["net_price", "promo_flag"]].copy()
+        for b in brands:
             if b in sdf.columns:
-                X[b] = np.log(np.maximum(sdf[b],0.01))
+                X[b] = np.log(np.maximum(sdf[b], 0.01))
             else:
                 X[b] = 0.0
 
         # Own-price elasticity from slope on log(price)
-        X_lp = np.column_stack([np.log(np.maximum(sdf["net_price"].values,0.01))] + [X[b].values for b in set(comp["brand"].unique())])
-        reg = LinearRegression().fit(X_lp, np.log(np.maximum(sdf["units"].values,1)))
+        X_lp = np.column_stack(
+            [np.log(np.maximum(sdf["net_price"].values, 0.01))]
+            + [X[b].values for b in brands]
+        )
+        reg = LinearRegression().fit(X_lp, np.log(np.maximum(sdf["units"].values, 1)))
         own_elast = float(reg.coef_[0])  # slope wrt log(price)
-        cross = {b: float(c) for b,c in zip(sorted(set(comp["brand"].unique())), reg.coef_[1:])}
+        cross = {b: float(c) for b, c in zip(brands, reg.coef_[1:])}
         elast_rows.append({"sku_id": sku_id, "own_elast": own_elast, "cross_elast_json": pd.Series(cross).to_json(), "stat_sig": 1})
 
         # Attribute importance using RF
