@@ -49,11 +49,9 @@ echo "  API deployed at: $API_URL"
 
 # Build UI with API URL
 echo "🔨 Building frontend UI..."
-cd ui
-gcloud builds submit \
-  --config cloudbuild.yaml \
+gcloud builds submit . \
+  --config ui/cloudbuild.yaml \
   --substitutions=_REGION=$REGION,_REPO=$REPO,_VITE_API_BASE=$API_URL
-cd ..
 
 UI_IMG="$REGION-docker.pkg.dev/$PROJECT_ID/$REPO/ppa-ui:latest"
 
