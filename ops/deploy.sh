@@ -74,6 +74,17 @@ gcloud run deploy ppa-ui \
 UI_URL=$(gcloud run services describe ppa-ui --region=$REGION --format='value(status.url)')
 echo "  UI deployed at: $UI_URL"
 
+# Configure CORS and OpenAI env on API
+echo "🔧 Configuring API environment..."
+gcloud run services update ppa-api \
+  --region=$REGION \
+  --set-env-vars=CORS_ORIGINS=$UI_URL,OPENAI_MODEL=gpt-4o-mini \
+  --set-env-vars=OPENAI_API_KEY=${OPENAI_API_KEY:?OPENAI_API_KEY not set}
+
+# Smoke test
+echo "🔎 Pinging health endpoint..."
+curl -sS $API_URL/healthz || true
+
 # Initialize data and train models
 echo "📊 Initializing demo data and training models..."
 echo "  Generating synthetic data..."
@@ -90,7 +101,7 @@ echo "🌐 Access your iNRM Dashboard at:"
 echo "   $UI_URL"
 echo ""
 echo "🔧 API Health Check:"
-echo "   $API_URL/health"
+echo "   $API_URL/healthz"
 echo ""
 echo "📝 Next Steps:"
 echo "   1. Visit the dashboard and click 'Initialize Demo Data' if needed"

@@ -32,18 +32,31 @@ export default function AgenticHuddle() {
   const [apiOverride, setApiOverride] = useState<string>(localStorage.getItem('API_BASE_OVERRIDE') || "");
 
   const start = async () => {
-    setLoading(true); 
-    setError(""); 
-    setResp(null);
+    setLoading(true); setError(""); setResp(null);
     try {
-      const r = await axios.post(`${API_BASE}/huddle/run`, null, { params: { q, budget }});
+      const r = await axios.post(
+        `${API_BASE}/huddle/run`,
+        { q, budget },
+        { timeout: 60000 }
+      );
       setResp(r.data);
     } catch (e: any) {
       const status = e?.response?.status;
-      const msg = e?.response?.data?.message || e?.response?.data?.detail || e?.message || "Failed to run huddle";
+      const msg = e?.response?.data?.detail || e?.response?.data?.message || e?.message || "Failed to run huddle";
       setError(status ? `${status}: ${msg} @ ${API_BASE}/huddle/run` : msg);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const ping = async () => {
+    try {
+      const r = await axios.get(`${API_BASE}/healthz`, { timeout: 10000 });
+      alert(`API OK: ${JSON.stringify(r.data)}`);
+    } catch (e: any) {
+      const status = e?.response?.status;
+      const msg = e?.response?.data?.detail || e?.message || "Ping failed";
+      alert(status ? `${status}: ${msg}` : msg);
     }
   };
 
@@ -115,8 +128,12 @@ export default function AgenticHuddle() {
                     className="px-3 py-2 rounded-md bg-secondary text-secondary-foreground"
                     onClick={() => { localStorage.removeItem('API_BASE_OVERRIDE'); localStorage.removeItem('API_BASE_SELECTED'); window.location.reload(); }}
                   >Clear</button>
+                  <button
+                    className="px-3 py-2 rounded-md bg-muted-foreground/20 text-foreground"
+                    onClick={ping}
+                  >Ping API</button>
                 </div>
-                <div className="text-muted-foreground">If you see 404, ensure your API exposes /huddle/run and /health.</div>
+                <div className="text-muted-foreground">If you see 404, ensure your API exposes /huddle/run and /healthz (or /health).</div>
               </div>
             </details>
           </div>

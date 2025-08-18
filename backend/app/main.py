@@ -1,5 +1,6 @@
 import os
-from fastapi import FastAPI, Query
+from typing import Optional
+from fastapi import FastAPI, Query, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from .synth_data import gen_weekly_data
 from .models.elasticities import fit_elasticities
@@ -10,10 +11,12 @@ from .agents.orchestrator import agentic_huddle, agentic_huddle_v2
 
 app = FastAPI(title="iNRM PPA+Assortment API", version="1.0.0")
 
-# CORS for frontend
+# CORS for frontend (allow specific origins or *)
+CORS_ORIGINS = os.getenv("CORS_ORIGINS", "*")
+allow_list = [o.strip() for o in CORS_ORIGINS.split(",")] if CORS_ORIGINS else ["*"]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=allow_list,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -92,9 +95,22 @@ def huddle(question: str, budget: float = 500000):
     return result
 
 @app.post("/huddle/run")
-def huddle_run(q: str = Query(...), budget: float = Query(500000)):
+def huddle_run(
+    q: Optional[str] = Query(None),
+    budget: float = Query(500000),
+    body: dict | None = None
+):
+    if body:
+        q = body.get("q", q)
+        budget = float(body.get("budget", budget))
+    if not q:
+        raise HTTPException(status_code=400, detail="Missing 'q' (question)")
     return agentic_huddle_v2(q, budget=budget)
 
 @app.get("/health")
 def health():
     return {"status": "healthy"}
+
+@app.get("/healthz")
+def healthz():
+    return {"ok": True}
