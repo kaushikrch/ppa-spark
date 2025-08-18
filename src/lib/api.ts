@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // Dynamic API base resolution with fallback and localStorage override
-let API_BASE: string = (import.meta as any).env?.VITE_API_BASE || localStorage.getItem('API_BASE_SELECTED') || 'http://localhost:8080';
+let API_BASE: string = localStorage.getItem('API_BASE_OVERRIDE') || (import.meta as any).env?.VITE_API_BASE || localStorage.getItem('API_BASE_SELECTED') || 'http://localhost:8080';
 
 export { API_BASE };
 
@@ -31,8 +31,15 @@ async function tryHealth(base: string, timeoutMs = 2500): Promise<boolean> {
 }
 
 async function resolveApiBase() {
+  const override = localStorage.getItem('API_BASE_OVERRIDE');
+  if (override) {
+    API_BASE = override.replace(/\/$/, '');
+    api.defaults.baseURL = API_BASE;
+    localStorage.setItem('API_BASE_SELECTED', API_BASE);
+    console.info('[API] Using override base:', API_BASE);
+    return API_BASE;
+  }
   const candidates = [
-    localStorage.getItem('API_BASE_OVERRIDE') || '',
     (import.meta as any).env?.VITE_API_BASE || '',
     // More comprehensive heuristics for Cloud Run patterns
     window.location.origin.replace('-ui', '-api'),
@@ -129,7 +136,7 @@ export const apiService = {
     api.post('/agents/huddle', {}, {params: {question, budget}}),
   
   // Health check
-  health: () => api.get('/health'),
+  health: () => api.get('/healthz'),
 };
 
 export default api;
