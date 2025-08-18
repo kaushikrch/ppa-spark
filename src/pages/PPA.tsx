@@ -8,19 +8,19 @@ import { Package, DollarSign, TrendingUp, AlertCircle } from 'lucide-react';
 const PPA: React.FC = () => {
   // Mock price-pack ladder data
   const priceLadder = [
-    { pack: '250ml Can', value: 25, premium: 2.20, core: 1.95, competitors: [2.10, 2.05, 2.25] },
-    { pack: '330ml Can', value: 35, premium: 2.75, core: 2.45, competitors: [2.70, 2.55, 2.80] },
-    { pack: '500ml PET', value: 52, premium: 3.25, core: 2.95, competitors: [3.20, 3.10, 3.35] },
-    { pack: '1L PET', value: 88, premium: 4.50, core: 4.15, competitors: [4.45, 4.25, 4.60] },
-    { pack: '1.5L PET', value: 125, premium: 5.75, core: 5.35, competitors: [5.80, 5.50, 5.90] },
+    { pack: '250ml Can', value: 250, premium: 2.20, core: 1.95, competitors: [2.10, 2.05, 2.25] },
+    { pack: '330ml Can', value: 330, premium: 2.75, core: 2.45, competitors: [2.70, 2.55, 2.80] },
+    { pack: '500ml PET', value: 500, premium: 3.25, core: 2.95, competitors: [3.20, 3.10, 3.35] },
+    { pack: '1L PET', value: 1000, premium: 4.50, core: 4.15, competitors: [4.45, 4.25, 4.60] },
+    { pack: '1.5L PET', value: 1500, premium: 5.75, core: 5.35, competitors: [5.80, 5.50, 5.90] },
   ];
 
   // Price per ml analysis
   const ppmData = priceLadder.map(item => ({
     pack: item.pack,
-    ppm_premium: Number((item.premium / item.value * 1000).toFixed(2)),
-    ppm_core: Number((item.core / item.value * 1000).toFixed(2)),
-    ppm_comp_avg: Number((item.competitors.reduce((a, b) => a + b, 0) / item.competitors.length / item.value * 1000).toFixed(2)),
+    ppm_premium: Number((item.premium / item.value).toFixed(4)),
+    ppm_core: Number((item.core / item.value).toFixed(4)),
+    ppm_comp_avg: Number(((item.competitors.reduce((a, b) => a + b, 0) / item.competitors.length) / item.value).toFixed(4)),
     value: item.value
   }));
 
@@ -61,6 +61,7 @@ const PPA: React.FC = () => {
                 label={{ value: 'Pack Size (ml)', position: 'insideBottom', offset: -10 }}
               />
               <YAxis 
+                dataKey="price"
                 type="number"
                 domain={[1.5, 6]}
                 stroke="hsl(var(--muted-foreground))"
@@ -120,11 +121,12 @@ const PPA: React.FC = () => {
                 />
                 <YAxis 
                   stroke="hsl(var(--muted-foreground))"
-                  label={{ value: 'Price per ml (₹)', angle: -90, position: 'insideLeft' }}
+                  tickFormatter={(v) => Number(v).toFixed(4)}
+                  label={{ value: 'Price per ml (₹/ml)', angle: -90, position: 'insideLeft' }}
                 />
                 <Tooltip 
                   formatter={(value, name) => [
-                    `₹${value}/ml`, 
+                    `₹${Number(value).toFixed(4)}/ml`, 
                     typeof name === 'string' ? name.replace('ppm_', '').replace('_', ' ') : String(name)
                   ]}
                   contentStyle={{ 
@@ -239,7 +241,7 @@ const PPA: React.FC = () => {
                 </div>
                 <div className="flex items-center justify-between text-sm text-muted-foreground">
                   <span>Target Price: ₹{gap.price}</span>
-                  <span>PPM: ₹{(gap.price / gap.size * 1000).toFixed(2)}</span>
+                  <span>PPM: ₹{(gap.price / gap.size).toFixed(4)}/ml</span>
                 </div>
               </div>
             ))}
