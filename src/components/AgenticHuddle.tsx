@@ -33,56 +33,23 @@ export default function AgenticHuddle() {
 
   const start = async () => {
     setLoading(true); setError(""); setResp(null);
-    const url = `${API_BASE}/huddle/run`;
-    const legacyUrl = `${API_BASE}/agents/huddle`;
     try {
-      // Prefer CORS-safe form-encoded POST (avoids preflight)
-      const form = new URLSearchParams({ q, budget: String(budget) });
-      const r = await axios.post(
-        url,
-        form,
-        { headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, params: { q, budget } }
-      );
+      const r = await axios.post(`${API_BASE}/huddle/run`, { q, budget }, { timeout: 60000 });
       setResp(r.data);
-    } catch (e1: any) {
-      try {
-        // Fallback to legacy endpoint with query params
-        const r2 = await axios.post(
-          legacyUrl,
-          null,
-          { params: { question: q, budget } }
-        );
-        setResp(r2.data);
-      } catch (e2: any) {
-        const status = e2?.response?.status || e1?.response?.status;
-        const msg = e2?.response?.data?.detail || e2?.response?.data?.message || e1?.message || e2?.message || "Failed to run huddle";
-        setError(status ? `${status}: ${msg} @ tried ${url} and ${legacyUrl}` : msg);
-      }
-    } finally {
-      setLoading(false);
+    } catch (e: any) {
+      const msg = e?.response?.data?.detail || e?.response?.data?.error || e?.message || "Failed to run huddle";
+      setError(msg);
+    } finally { 
+      setLoading(false); 
     }
   };
 
   const ping = async () => {
-    const candidates = [
-      `${API_BASE}/healthz`,
-      `${API_BASE}/health`,
-    ];
     try {
-      for (const u of candidates) {
-        try {
-          const r = await axios.get(u, { timeout: 10000 });
-          alert(`API OK at ${u}: ${JSON.stringify(r.data)}`);
-          return;
-        } catch {}
-      }
-      throw new Error('Health endpoints not responding');
+      const r = await axios.get(`${API_BASE}/healthz`, { timeout: 10000 });
+      alert(`API OK: ${JSON.stringify(r.data)}`);
     } catch (e: any) {
-      const mixed = window.location.protocol === 'https:' && API_BASE.startsWith('http://');
-      const hint = mixed ? 'Mixed content blocked: use https:// for API base.' : 'Check CORS and endpoint availability.';
-      const status = e?.response?.status;
-      const msg = e?.response?.data?.detail || e?.message || 'Ping failed';
-      alert(`${status ? status + ': ' : ''}${msg} (${hint})`);
+      alert(`API not reachable: ${e?.message}`);
     }
   };
 

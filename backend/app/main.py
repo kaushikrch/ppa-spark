@@ -26,6 +26,14 @@ app.add_middleware(
 def root():
     return {"message": "iNRM PPA+Assortment API", "version": "1.0.0"}
 
+@app.get("/healthz")
+def healthz():
+    return {"ok": True}
+
+@app.get("/health")
+def health():
+    return {"status": "healthy"}
+
 @app.post("/data/generate")
 def generate():
     gen_weekly_data()
@@ -106,11 +114,3 @@ def huddle_run(
     if not q:
         raise HTTPException(status_code=400, detail="Missing 'q' (question)")
     return agentic_huddle_v2(q, budget=budget)
-
-@app.get("/health")
-def health():
-    return {"status": "healthy"}
-
-@app.get("/healthz")
-def healthz():
-    return {"ok": True}

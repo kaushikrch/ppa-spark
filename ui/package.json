@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
+    "serve": "node server.js",
     "preview": "vite preview"
   },
   "dependencies": {
@@ -21,7 +22,9 @@
     "@radix-ui/react-progress": "^1.1.7",
     "@radix-ui/react-badge": "^1.1.0",
     "class-variance-authority": "^0.7.1",
-    "tailwind-merge": "^2.6.0"
+    "tailwind-merge": "^2.6.0",
+    "express": "^4.19.2",
+    "http-proxy-middleware": "^3.0.2"
   },
   "devDependencies": {
     "@types/react": "^18.2.66",
