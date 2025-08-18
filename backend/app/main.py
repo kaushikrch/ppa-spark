@@ -2,6 +2,7 @@ import os
 from typing import Optional
 from fastapi import FastAPI, Query, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from .schemas import HuddleResponse
 from .synth_data import gen_weekly_data
 from .models.elasticities import fit_elasticities
 from .models.simulator import simulate_price_change, simulate_delist
@@ -105,7 +106,7 @@ def huddle(question: str, budget: float = 500000):
     result = agentic_huddle(question, budget)
     return result
 
-@app.post("/huddle/run")
+@app.post("/huddle/run", response_model=HuddleResponse)
 def huddle_run(
     q: Optional[str] = Query(None),
     budget: float = Query(500000),
