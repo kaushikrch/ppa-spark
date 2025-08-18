@@ -81,9 +81,10 @@ gcloud run services update ppa-api \
   --set-env-vars=CORS_ORIGINS=$UI_URL,OPENAI_MODEL=gpt-4o-mini \
   --set-env-vars=OPENAI_API_KEY=${OPENAI_API_KEY:?OPENAI_API_KEY not set}
 
-# Smoke test
-echo "🔎 Pinging health endpoint..."
-curl -sS $API_URL/healthz || true
+
+# Smoke tests
+echo "🧪 Running smoke tests..."
+"$(dirname "$0")/smoke_test.sh" "$API_URL" "$UI_URL"
 
 # Initialize data and train models
 echo "📊 Initializing demo data and training models..."
