@@ -92,11 +92,18 @@ const Simulator: React.FC = () => {
   };
 
   const getElasticityColor = (elasticity: number) => {
-    if (elasticity > -0.8) return 'text-destructive';
-    if (elasticity > -1.2) return 'text-warning';
-    return 'text-success';
+    const abs = Math.abs(elasticity);
+    if (abs > 1.2) return 'text-destructive'; // Elastic / Price sensitive
+    if (abs >= 0.8) return 'text-warning'; // Moderate
+    return 'text-success'; // Inelastic
   };
 
+  const getElasticityLabel = (elasticity: number) => {
+    const abs = Math.abs(elasticity);
+    if (abs > 1.2) return 'Elastic (Price Sensitive)';
+    if (abs >= 0.8) return 'Moderate';
+    return 'Inelastic';
+  };
   return (
     <div className="space-y-8">
       {/* Header */}
@@ -178,7 +185,7 @@ const Simulator: React.FC = () => {
                           Elasticity: {sku.elasticity}
                         </Badge>
                         <Badge className={`text-xs ${getElasticityColor(sku.elasticity)}`}>
-                          {sku.elasticity > -0.8 ? 'Price Sensitive' : sku.elasticity > -1.2 ? 'Moderate' : 'Inelastic'}
+                          {getElasticityLabel(sku.elasticity)}
                         </Badge>
                       </div>
                     </div>

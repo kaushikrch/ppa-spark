@@ -81,10 +81,7 @@ const Elasticities: React.FC = () => {
         <ChartWithInsight panelId="attribute-importance" title="Attribute Importance (Random Forest SHAP)">
           <div className="h-80">
             <ResponsiveContainer width="100%" height="100%">
-              <ScatterChart 
-                data={attributeData.map((item, index) => ({ ...item, yPos: index }))}
-                margin={{ top: 20, right: 80, bottom: 60, left: 120 }}
-              >
+              <ScatterChart margin={{ top: 20, right: 80, bottom: 60, left: 140 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                 <XAxis 
                   type="number" 
@@ -102,10 +99,11 @@ const Elasticities: React.FC = () => {
                 <YAxis 
                   type="number"
                   dataKey="yPos"
-                  domain={[-0.5, 4.5]}
+                  domain={[-0.5, attributeData.length - 0.5]}
+                  ticks={attributeData.map((_, i) => i)}
                   stroke="hsl(var(--muted-foreground))"
                   tickFormatter={(value) => {
-                    const attr = attributeData[value];
+                    const attr = attributeData[value as number];
                     return attr ? attr.attribute : '';
                   }}
                   tick={{ fontSize: 12 }}
@@ -128,23 +126,11 @@ const Elasticities: React.FC = () => {
                   }} 
                 />
                 <Scatter 
-                  dataKey="importance" 
+                  name="SHAP Importance"
+                  data={attributeData.map((item, index) => ({ ...item, yPos: index }))}
                   fill="hsl(var(--primary))" 
                   r={8}
                 />
-                {/* Add data labels */}
-                {attributeData.map((entry, index) => (
-                  <text
-                    key={index}
-                    x={entry.importance * 1000 + 30}
-                    y={index * 40 + 35}
-                    fill="hsl(var(--foreground))"
-                    fontSize="12"
-                    fontWeight="500"
-                  >
-                    {(entry.importance * 100).toFixed(1)}%
-                  </text>
-                ))}
               </ScatterChart>
             </ResponsiveContainer>
           </div>
