@@ -81,18 +81,23 @@ const Elasticities: React.FC = () => {
         <ChartWithInsight panelId="attribute-importance" title="Attribute Importance (Random Forest SHAP)">
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={attributeData} layout="horizontal" margin={{ left: 80 }}>
+              <BarChart 
+                data={attributeData} 
+                layout="horizontal" 
+                margin={{ top: 20, right: 30, bottom: 20, left: 100 }}
+              >
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                 <XAxis 
                   type="number" 
                   stroke="hsl(var(--muted-foreground))"
-                  label={{ value: 'Importance Score', position: 'insideBottom', offset: -10 }}
+                  tickFormatter={(v) => `${(v * 100).toFixed(0)}%`}
+                  label={{ value: 'Importance Score (%)', position: 'insideBottom', offset: -10 }}
                 />
                 <YAxis 
                   dataKey="attribute" 
                   type="category" 
-                  stroke="hsl(var(--muted-foreground))" 
-                  width={80}
+                  stroke="hsl(var(--muted-foreground))"
+                  width={90}
                 />
                 <Tooltip 
                   formatter={(value) => [`${(Number(value) * 100).toFixed(1)}%`, 'Importance']}
@@ -102,7 +107,11 @@ const Elasticities: React.FC = () => {
                     borderRadius: '8px'
                   }} 
                 />
-                <Bar dataKey="importance" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} />
+                <Bar 
+                  dataKey="importance" 
+                  fill="hsl(var(--primary))" 
+                  radius={[0, 4, 4, 0]} 
+                />
               </BarChart>
             </ResponsiveContainer>
           </div>

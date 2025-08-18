@@ -90,16 +90,25 @@ const ElasticityMatrix: React.FC = () => {
                 <tr key={item.sku_id}>
                   <td className="p-2 font-medium text-foreground">{item.brand}</td>
                   {['Aurel', 'Novis', 'Verra', 'Kairo', 'Lumio'].map(brand => {
-                    const value = brand === item.brand ? item.own_elast : (item.cross_elast[brand] || 0);
+                    const rawValue = brand === item.brand ? item.own_elast : (item.cross_elast[brand] || 0);
                     const isOwn = brand === item.brand;
+                    const value = isOwn ? rawValue : Math.max(0, rawValue); // Convert negative cross elasticities to 0
+                    const showNoSubstitution = !isOwn && rawValue <= 0;
+                    
                     return (
                       <td key={brand} className="text-center p-2">
-                        <div className={`flex items-center justify-center space-x-1 ${getElasticityColor(value, isOwn)}`}>
-                          {getElasticityIcon(value, isOwn)}
-                          <span className={`text-sm ${isOwn ? 'font-bold' : ''}`}>
-                            {value.toFixed(2)}
-                          </span>
-                        </div>
+                        {showNoSubstitution ? (
+                          <div className="flex items-center justify-center">
+                            <span className="text-xs text-muted-foreground">No substitution</span>
+                          </div>
+                        ) : (
+                          <div className={`flex items-center justify-center space-x-1 ${getElasticityColor(value, isOwn)}`}>
+                            {getElasticityIcon(value, isOwn)}
+                            <span className={`text-sm ${isOwn ? 'font-bold' : ''}`}>
+                              {value.toFixed(2)}
+                            </span>
+                          </div>
+                        )}
                       </td>
                     );
                   })}
