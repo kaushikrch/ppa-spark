@@ -53,6 +53,21 @@ gcloud builds submit . \
   --config ui/cloudbuild.yaml \
   --substitutions=_REGION=$REGION,_REPO=$REPO,_VITE_API_BASE=$API_URL
 
+UI_IMG="$REGION-docker.pkg.dev/$PROJECT_ID/$REPO/ppa-ui:latest"
+
+# Deploy UI to Cloud Run
+echo "🚀 Deploying UI to Cloud Run..."
+gcloud run deploy ppa-ui \
+  --image=$UI_IMG \
+  --region=$REGION \
+  --allow-unauthenticated \
+  --port=3000 \
+  --memory=1Gi \
+  --cpu=1 \
+  --timeout=60 \
+  --max-instances=5 \
+  --set-env-vars=API_URL=$API_URL,VITE_API_BASE=$API_URL
+  
 # Get UI URL
 UI_URL=$(gcloud run services describe ppa-ui --region=$REGION --format='value(status.url)')
 echo "  UI deployed at: $UI_URL"
