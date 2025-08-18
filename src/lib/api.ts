@@ -1,12 +1,76 @@
 import axios from 'axios';
 
-// Force same-origin proxy path; no more discovery/overrides:
-export const API_BASE = "/api";
+// Hybrid API base resolution: prefer same-origin /api proxy; fallback to direct URL or override
+export let API_BASE: string = "/api";
 
 const api = axios.create({
   baseURL: API_BASE,
   timeout: 30000,
 });
+
+async function tryHealth(base: string, timeoutMs = 2500): Promise<boolean> {
+  try {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), timeoutMs);
+    const norm = (b: string) => b.replace(/\/$/, "");
+    const baseNorm = norm(base);
+    const isRelative = baseNorm.startsWith('/');
+    const url = (path: string) => isRelative ? `${baseNorm}${path}` : `${baseNorm}${path}`;
+    let res: Response | undefined;
+    try {
+      res = await fetch(url('/healthz'), { signal: ctrl.signal });
+    } catch {
+      res = await fetch(url('/health'), { signal: ctrl.signal });
+    }
+    clearTimeout(t);
+    if (!res || !res.ok) return false;
+    const j = await res.json().catch(() => ({}));
+    return Boolean(j) && (j.ok === true || j.status === 'healthy' || j.version);
+  } catch {
+    return false;
+  }
+}
+
+async function resolveApiBase() {
+  const uniq = (arr: string[]) => Array.from(new Set(arr.filter(Boolean)));
+  const ls = (k: string) => localStorage.getItem(k) || '';
+  const override = ls('API_BASE_OVERRIDE');
+  const envBase = (import.meta as any).env?.VITE_API_BASE || '';
+
+  const candidates = uniq([
+    '/api',
+    override,
+    envBase,
+    // Cloud Run URL heuristics based on current origin
+    window.location.origin.replace('-ui', '-api'),
+    window.location.origin.replace('ui-', 'api-'),
+    window.location.origin.replace('ppa-ui', 'ppa-api'),
+    // Known patterns from earlier attempts
+    'https://ppa-api-526d60d2-b2b5-465a-b564-1a6f46672e47.lovableproject.com',
+    'https://526d60d2-b2b5-465a-b564-1a6f46672e47-api.lovableproject.com',
+    // Local dev fallbacks
+    'http://localhost:8000',
+    'http://localhost:8080',
+  ]);
+
+  for (const base of candidates) {
+    const ok = await tryHealth(base);
+    if (ok) {
+      API_BASE = base.replace(/\/$/, '');
+      api.defaults.baseURL = API_BASE;
+      localStorage.setItem('API_BASE_SELECTED', API_BASE);
+      console.info('[API] Using base:', API_BASE);
+      return API_BASE;
+    }
+  }
+  console.warn('[API] No healthy API base found; staying on', API_BASE);
+  return API_BASE;
+}
+
+// Resolve on load (non-blocking)
+resolveApiBase().catch(() => {});
+
+
 
 export interface KPIData {
   revenue: number;
@@ -69,7 +133,7 @@ export const apiService = {
   
   // Agentic huddle
   agenticHuddle: (question: string, budget?: number): Promise<{data: HuddleResult}> => 
-    api.post('/agents/huddle', {}, {params: {question, budget}}),
+    api.post('/huddle/run', { q: question, budget }),
   
   // Health check
   health: () => api.get('/healthz'),
