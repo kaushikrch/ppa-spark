@@ -29,7 +29,7 @@ export default function RAGSearch() {
         timeout: 30000
       });
       setHits(response.data.hits || []);
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error("RAG search failed:", e);
       setError("Search failed. Please check your connection and try again.");
       setHits([]);

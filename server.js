@@ -1,8 +1,11 @@
-const express = require("express");
-const path = require("path");
-const { createProxyMiddleware } = require("http-proxy-middleware");
+import express from "express";
+import path from "path";
+import { fileURLToPath } from "url";
+import { createProxyMiddleware } from "http-proxy-middleware";
 
 const app = express();
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 const DIST = path.join(__dirname, "dist");
 
 // API_URL must be the Cloud Run URL of the FastAPI service (no trailing slash)
@@ -23,7 +26,9 @@ app.use(
     timeout: 60000,
     onError(err, req, res) {
       console.error("Proxy error:", err?.message);
-      res.status(502).json({ error: "proxy_error", detail: err?.message || "unknown" });
+      res
+        .status(502)
+        .json({ error: "proxy_error", detail: err?.message || "unknown" });
     },
   })
 );
@@ -35,4 +40,9 @@ app.use(express.static(DIST));
 app.get("*", (_, res) => res.sendFile(path.join(DIST, "index.html")));
 
 const port = process.env.PORT || 3000;
-app.listen(port, () => console.log(`UI listening on ${port}; API proxy -> ${API_URL || "http://localhost:8080"}`));
+app.listen(port, () =>
+  console.log(
+    `UI listening on ${port}; API proxy -> ${API_URL || "http://localhost:8080"}`
+  )
+);
+
