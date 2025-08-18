@@ -22,13 +22,26 @@ class SimpleTableRAG:
         for t in tables:
             try:
                 df = pd.read_sql(f"select * from {t} limit 5000", con)
-                text = df.to_csv(index=False)
-                blobs.append(f"TABLE:{t}\n{text}")
-            except:
+                # Schema doc
+                schema_text = df.dtypes.to_string()
+                blobs.append(f"TABLE:{t}\nSECTION:schema\n{schema_text}")
+                # Stats doc (numeric and categorical summary)
+                try:
+                    stats_text = df.describe(include='all', percentiles=[0.25,0.5,0.75]).to_csv()
+                    blobs.append(f"TABLE:{t}\nSECTION:stats\n{stats_text}")
+                except Exception:
+                    pass
+                # Samples doc (chunked)
+                sample_csv = df.head(500).to_csv(index=False)
+                chunk_size = 1800
+                for i in range(0, len(sample_csv), chunk_size):
+                    chunk = sample_csv[i:i+chunk_size]
+                    blobs.append(f"TABLE:{t}\nSECTION:samples\nCHUNK:{i//chunk_size}\n{chunk}")
+            except Exception:
                 continue
         self.docs = blobs
         if blobs:
-            self.vec = TfidfVectorizer(stop_words="english")
+            self.vec = TfidfVectorizer(stop_words="english", ngram_range=(1,2))
             self.mat = self.vec.fit_transform(self.docs)
 
     def query(self, q, topk=3):
