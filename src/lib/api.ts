@@ -1,11 +1,59 @@
 import axios from 'axios';
 
-export const API_BASE = import.meta.env.VITE_API_BASE || window.location.origin;
+// Dynamic API base resolution with fallback and localStorage override
+let API_BASE: string = (import.meta as any).env?.VITE_API_BASE || localStorage.getItem('API_BASE_SELECTED') || 'http://localhost:8080';
+
+export { API_BASE };
 
 const api = axios.create({
   baseURL: API_BASE,
   timeout: 30000,
 });
+
+async function tryHealth(base: string, timeoutMs = 2500): Promise<boolean> {
+  try {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), timeoutMs);
+    const res = await fetch(`${base.replace(/\/$/, '')}/health`, { signal: ctrl.signal });
+    clearTimeout(t);
+    if (!res.ok) return false;
+    const j = await res.json().catch(() => ({}));
+    return Boolean(j) && (j.status === 'healthy' || j.version);
+  } catch {
+    return false;
+  }
+}
+
+async function resolveApiBase() {
+  const candidates = [
+    localStorage.getItem('API_BASE_OVERRIDE') || '',
+    (import.meta as any).env?.VITE_API_BASE || '',
+    // Heuristics for common dual-service domains
+    window.location.origin.replace('-ui', '-api'),
+    window.location.origin.replace('ui-', 'api-'),
+    window.location.origin, // same-origin (only if backend co-hosted)
+    'http://localhost:8000',
+    'http://localhost:8080',
+  ].filter(Boolean);
+
+  for (const base of candidates) {
+    // Skip if it's obviously the current UI and not an API
+    if (!base) continue;
+    const ok = await tryHealth(base);
+    if (ok) {
+      API_BASE = base.replace(/\/$/, '');
+      api.defaults.baseURL = API_BASE;
+      localStorage.setItem('API_BASE_SELECTED', API_BASE);
+      console.info('[API] Using base:', API_BASE);
+      return API_BASE;
+    }
+  }
+  console.warn('[API] No healthy API base found, staying on', API_BASE);
+  return API_BASE;
+}
+
+// Kick off resolution on load (best-effort)
+resolveApiBase();
 
 export interface KPIData {
   revenue: number;
