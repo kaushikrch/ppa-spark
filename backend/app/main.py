@@ -6,7 +6,7 @@ from .models.elasticities import fit_elasticities
 from .models.simulator import simulate_price_change, simulate_delist
 from .models.optimizer import run_optimizer
 from .rag.indexer import rag
-from .agents.orchestrator import agentic_huddle
+from .agents.orchestrator import agentic_huddle, agentic_huddle_v2
 
 app = FastAPI(title="iNRM PPA+Assortment API", version="1.0.0")
 
@@ -90,6 +90,10 @@ Provide a 2-3 sentence insight focusing on key business implications."""
 def huddle(question: str, budget: float = 500000):
     result = agentic_huddle(question, budget)
     return result
+
+@app.post("/huddle/run")
+def huddle_run(q: str = Query(...), budget: float = Query(500000)):
+    return agentic_huddle_v2(q, budget=budget)
 
 @app.get("/health")
 def health():

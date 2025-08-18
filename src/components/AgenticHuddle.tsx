@@ -1,292 +1,235 @@
-import React, { useState } from 'react';
-import { Card } from './ui/card';
-import { Button } from './ui/button';
-import { Badge } from './ui/badge';
-import { MessageSquare, Brain, Zap, Target, Users, Clock, CheckCircle } from 'lucide-react';
-import { apiService } from '../lib/api';
-import PromptTiles from './PromptTiles';
+import React, { useState } from "react";
+import axios from "axios";
+import { API_BASE } from "../lib/api";
+import { Card } from "./ui/card";
+import PromptTiles from "./PromptTiles";
 
-interface HuddleRound {
-  role: string;
-  content: string;
-  evidence?: string[];
-  kpis?: any;
-  recommendation?: any;
-  timestamp: string;
+type PlanAction = {
+  action_type: string;
+  target_type: string;
+  ids: string[];
+  magnitude_pct: number;
+  expected_impact?: { units?: number; revenue?: number; margin?: number };
+  constraints?: string[];
+  risks?: string[];
   confidence?: number;
-}
+  evidence_refs?: string[];
+};
 
-interface HuddleResult {
-  rounds: HuddleRound[];
-  stopped_after_rounds: number;
-  final_recommendation?: any;
-}
+type PlanJSON = {
+  plan_name: string;
+  assumptions?: string[];
+  actions: PlanAction[];
+  rationale?: string;
+};
 
-const AgenticHuddle: React.FC = () => {
-  const [question, setQuestion] = useState('');
-  const [budget, setBudget] = useState(500000);
-  const [result, setResult] = useState<HuddleResult | null>(null);
+export default function AgenticHuddle() {
+  const [q, setQ] = useState("");
+  const [budget, setBudget] = useState<number>(500000);
   const [loading, setLoading] = useState(false);
+  const [resp, setResp] = useState<any>(null);
+  const [error, setError] = useState<string>("");
 
-  const startHuddle = async (selectedQuestion?: string) => {
-    const q = selectedQuestion || question;
-    if (!q.trim()) return;
-
-    setLoading(true);
+  const start = async () => {
+    setLoading(true); 
+    setError(""); 
+    setResp(null);
     try {
-      const response = await apiService.agenticHuddle(q, budget);
-      setResult(response.data);
-    } catch (error) {
-      console.error('Huddle failed:', error);
-      // Mock result for demo
-      setResult({
-        rounds: [
-          {
-            role: 'RAGAgent',
-            content: 'Retrieved evidence from data tables',
-            evidence: [
-              'Price elasticity data shows Verra brand has -1.56 own-price elasticity',
-              'Cross-elasticity between Aurel and Novis is 0.15, indicating moderate substitution',
-              'Modern Trade channel shows 23% higher margin potential'
-            ],
-            timestamp: '2024-01-15T10:00:00Z'
-          },
-          {
-            role: 'OptimizationAgent',
-            content: 'Ran round-1 optimizer with 20% bound constraints',
-            kpis: { status: 'Optimal', margin: 3890000, n_near_bound: 1 },
-            timestamp: '2024-01-15T10:05:00Z'
-          },
-          {
-            role: 'CoachAgent',
-            content: 'Consensus recommendation after multi-agent analysis',
-            recommendation: {
-              summary: 'Focus on premium pack price increases in Modern Trade with selective promotional rationalization',
-              actions: [
-                'Apply +6% on Verra 1L PET in Modern Trade (low elasticity)',
-                'Reduce promo depth from 28% to 18% on Kairo 330ml cans',
-                'Delist Aurel 250ml cans in eCom (0.2% share, high cannibalization)'
-              ],
-              kpis_expected: {
-                revenue_lift: '3.2%',
-                margin_improvement: '8.4%',
-                volume_impact: '-0.8%'
-              }
-            },
-            confidence: 0.82,
-            timestamp: '2024-01-15T10:10:00Z'
-          }
-        ],
-        stopped_after_rounds: 3,
-        final_recommendation: {}
-      });
+      const r = await axios.post(`${API_BASE}/huddle/run`, null, { params: { q, budget }});
+      setResp(r.data);
+    } catch (e: any) {
+      setError(e?.message || "Failed to run huddle");
     } finally {
       setLoading(false);
     }
   };
 
-  const getRoleIcon = (role: string) => {
-    switch (role) {
-      case 'RAGAgent': return <Brain className="h-4 w-4" />;
-      case 'OptimizationAgent': return <Target className="h-4 w-4" />;
-      case 'CoachAgent': return <Users className="h-4 w-4" />;
-      default: return <MessageSquare className="h-4 w-4" />;
-    }
+  const handleTileClick = (question: string) => {
+    setQ(question);
+    // Auto-start huddle when tile is clicked
+    setTimeout(() => {
+      start();
+    }, 100);
   };
 
-  const getRoleColor = (role: string) => {
-    switch (role) {
-      case 'RAGAgent': return 'bg-blue-500';
-      case 'OptimizationAgent': return 'bg-green-500';
-      case 'CoachAgent': return 'bg-purple-500';
-      default: return 'bg-gray-500';
-    }
-  };
+  const FinalPlan: PlanJSON | undefined = resp?.final;
 
   return (
     <div className="space-y-6">
-      {/* Query Input */}
+      {/* Input Card */}
       <Card className="p-6 bg-gradient-secondary border-0 shadow-elegant">
-        <div className="flex items-center space-x-3 mb-4">
-          <Zap className="h-6 w-6 text-primary" />
-          <h2 className="text-xl font-semibold text-foreground">Agentic AI Huddle</h2>
-        </div>
-        
         <div className="space-y-4">
-          <div>
-            <label className="text-sm font-medium text-muted-foreground mb-2 block">
-              Business Question
-            </label>
-            <textarea
-              value={question}
-              onChange={(e) => setQuestion(e.target.value)}
-              placeholder="Ask a complex PPA or assortment question..."
-              className="w-full p-3 rounded-lg border border-border bg-card text-foreground resize-none"
-              rows={3}
-            />
-          </div>
-          
-          <div className="flex items-center space-x-4">
-            <div className="flex-1">
-              <label className="text-sm font-medium text-muted-foreground mb-2 block">
-                Budget Constraint (₹)
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="col-span-3">
+              <label className="block text-sm font-medium text-foreground mb-2">
+                Business Question
               </label>
-              <input
-                type="number"
-                value={budget}
-                onChange={(e) => setBudget(Number(e.target.value))}
-                className="w-full p-3 rounded-lg border border-border bg-card text-foreground"
+              <textarea
+                className="w-full p-3 rounded-xl border border-border bg-background text-foreground resize-none focus:outline-none focus:ring-2 focus:ring-primary/20"
+                placeholder="Ask a complex PPA or assortment question..."
+                value={q}
+                onChange={e => setQ(e.target.value)}
+                rows={3}
               />
             </div>
-            <div className="pt-6">
-              <Button
-                onClick={() => startHuddle()}
-                disabled={!question.trim() || loading}
-                className="bg-gradient-primary hover:opacity-90"
-              >
-                {loading ? 'Starting Huddle...' : 'Start Huddle'}
-              </Button>
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-2">
+                Budget (₹)
+              </label>
+              <input
+                className="w-full p-3 rounded-xl border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
+                type="number"
+                value={budget}
+                onChange={e => setBudget(Number(e.target.value))}
+                placeholder="Budget (₹)"
+              />
             </div>
+          </div>
+          <div className="flex justify-start">
+            <button
+              onClick={start}
+              disabled={!q || loading}
+              className="px-6 py-3 rounded-xl bg-primary text-primary-foreground font-medium disabled:opacity-50 hover:bg-primary/90 transition-colors duration-200"
+            >
+              {loading ? "Huddle Running..." : "Start Huddle"}
+            </button>
           </div>
         </div>
       </Card>
 
-      {/* Prompt Tiles */}
-      {!result && (
-        <PromptTiles onAsk={(q) => startHuddle(q)} />
+      {error && (
+        <Card className="p-4 bg-destructive/10 border-destructive/20">
+          <div className="text-destructive text-sm font-medium">{error}</div>
+        </Card>
       )}
 
-      {/* Huddle Results */}
-      {result && (
-        <Card className="p-6 bg-gradient-secondary border-0 shadow-elegant">
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center space-x-3">
-              <Users className="h-6 w-6 text-primary" />
-              <h3 className="text-lg font-semibold text-foreground">Huddle Transcript</h3>
-            </div>
-            <Badge variant="default" className="bg-primary">
-              {result.stopped_after_rounds} Rounds Complete
-            </Badge>
-          </div>
+      {/* Show prompt tiles if no response */}
+      {!resp && !loading && (
+        <PromptTiles onAsk={handleTileClick} />
+      )}
 
-          <div className="space-y-6">
-            {result.rounds.map((round, index) => (
-              <div key={index} className="relative">
-                {/* Timeline connector */}
-                {index < result.rounds.length - 1 && (
-                  <div className="absolute left-6 top-12 w-0.5 h-16 bg-border" />
-                )}
-                
-                <div className="flex space-x-4">
-                  {/* Agent Avatar */}
-                  <div className={`w-12 h-12 rounded-full ${getRoleColor(round.role)} flex items-center justify-center text-white`}>
-                    {getRoleIcon(round.role)}
-                  </div>
-                  
-                  {/* Content */}
-                  <div className="flex-1 space-y-3">
-                    <div className="flex items-center space-x-3">
-                      <h4 className="font-semibold text-foreground">{round.role}</h4>
-                      <Badge variant="outline" className="text-xs">
-                        <Clock className="h-3 w-3 mr-1" />
-                        {new Date(round.timestamp).toLocaleTimeString()}
-                      </Badge>
-                      {round.confidence && (
-                        <Badge variant="secondary" className="text-xs">
-                          {Math.round(round.confidence * 100)}% confidence
-                        </Badge>
-                      )}
-                    </div>
-                    
-                    <p className="text-muted-foreground">{round.content}</p>
-                    
-                    {/* Evidence */}
-                    {round.evidence && (
-                      <div className="p-3 rounded-lg bg-card border border-border">
-                        <h5 className="font-medium text-foreground mb-2">Evidence:</h5>
-                        <ul className="space-y-1 text-sm text-muted-foreground">
-                          {round.evidence.map((item, i) => (
-                            <li key={i} className="flex items-start space-x-2">
-                              <span className="text-primary mt-1">•</span>
-                              <span>{item}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-                    
-                    {/* KPIs */}
-                    {round.kpis && (
-                      <div className="p-3 rounded-lg bg-card border border-border">
-                        <h5 className="font-medium text-foreground mb-2">Optimization Results:</h5>
-                        <div className="grid grid-cols-3 gap-4 text-sm">
-                          <div>
-                            <span className="text-muted-foreground">Status: </span>
-                            <span className="text-foreground font-medium">{round.kpis.status}</span>
-                          </div>
-                          <div>
-                            <span className="text-muted-foreground">Margin: </span>
-                            <span className="text-foreground font-medium">₹{(round.kpis.margin / 1000000).toFixed(1)}M</span>
-                          </div>
-                          <div>
-                            <span className="text-muted-foreground">Near-bound: </span>
-                            <span className="text-foreground font-medium">{round.kpis.n_near_bound} SKUs</span>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                    
-                    {/* Final Recommendation */}
-                    {round.recommendation && (
-                      <div className="p-4 rounded-lg bg-primary/5 border border-primary/20">
-                        <div className="flex items-center space-x-2 mb-3">
-                          <CheckCircle className="h-5 w-5 text-primary" />
-                          <h5 className="font-semibold text-primary">Final Recommendation</h5>
-                        </div>
-                        
-                        <p className="text-foreground mb-4">{round.recommendation.summary}</p>
-                        
-                        <div className="space-y-3">
-                          <div>
-                            <h6 className="font-medium text-foreground mb-2">Actions:</h6>
-                            <ul className="space-y-1">
-                              {round.recommendation.actions?.map((action: string, i: number) => (
-                                <li key={i} className="flex items-start space-x-2 text-sm">
-                                  <CheckCircle className="h-4 w-4 text-success mt-0.5 flex-shrink-0" />
-                                  <span className="text-muted-foreground">{action}</span>
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                          
-                          {round.recommendation.kpis_expected && (
-                            <div className="grid grid-cols-3 gap-4 text-sm">
-                              <div>
-                                <span className="text-muted-foreground">Revenue: </span>
-                                <span className="text-success font-medium">+{round.recommendation.kpis_expected.revenue_lift}</span>
-                              </div>
-                              <div>
-                                <span className="text-muted-foreground">Margin: </span>
-                                <span className="text-success font-medium">+{round.recommendation.kpis_expected.margin_improvement}</span>
-                              </div>
-                              <div>
-                                <span className="text-muted-foreground">Volume: </span>
-                                <span className="text-warning font-medium">{round.recommendation.kpis_expected.volume_impact}</span>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    )}
-                  </div>
+      {/* Transcript */}
+      {resp?.transcript && (
+        <Card className="p-6 bg-background border shadow-elegant">
+          <div className="text-lg font-semibold mb-4 text-foreground">Debate Transcript (3 rounds max)</div>
+          <div className="space-y-3">
+            {resp.transcript.map((t: any, idx: number) => (
+              <div key={idx} className="p-4 bg-muted rounded-xl border">
+                <div className="text-xs text-muted-foreground font-medium mb-2">
+                  {t.role} • Round {t.round}
                 </div>
+                {t.plan && (
+                  <div className="bg-background rounded-lg p-3 mb-2">
+                    <div className="text-sm font-medium text-foreground mb-1">
+                      Plan: {t.plan.plan_name || "Unnamed Plan"}
+                    </div>
+                    <pre className="text-xs text-muted-foreground whitespace-pre-wrap font-mono">
+                      {JSON.stringify(t.plan, null, 2)}
+                    </pre>
+                  </div>
+                )}
+                {t.kpis && (
+                  <div className="text-xs mt-2 p-2 bg-primary/5 rounded">
+                    <span className="font-medium text-primary">KPIs:</span>{" "}
+                    <span className="text-foreground">{JSON.stringify(t.kpis)}</span>
+                  </div>
+                )}
+                {t.risks && (
+                  <div className="text-xs mt-2 p-2 bg-destructive/5 rounded">
+                    <span className="font-medium text-destructive">Risks:</span>{" "}
+                    <span className="text-foreground">{JSON.stringify(t.risks)}</span>
+                  </div>
+                )}
               </div>
             ))}
           </div>
         </Card>
       )}
+
+      {/* Final Plan */}
+      {FinalPlan && (
+        <Card className="p-6 bg-gradient-primary border-0 shadow-purple">
+          <div className="text-xl font-bold mb-4 text-primary-foreground">
+            Final Action Plan: {FinalPlan.plan_name}
+          </div>
+          
+          {FinalPlan.assumptions && FinalPlan.assumptions.length > 0 && (
+            <div className="mb-4">
+              <div className="text-sm font-medium text-primary-foreground/90 mb-2">Assumptions:</div>
+              <ul className="list-disc pl-5 text-sm text-primary-foreground/80">
+                {FinalPlan.assumptions.map((a, i) => (
+                  <li key={i}>{a}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-sm bg-background/10 rounded-lg">
+              <thead>
+                <tr className="text-left border-b border-primary-foreground/20">
+                  <th className="p-3 text-primary-foreground font-medium">Action</th>
+                  <th className="p-3 text-primary-foreground font-medium">Targets</th>
+                  <th className="p-3 text-primary-foreground font-medium">Δ%</th>
+                  <th className="p-3 text-primary-foreground font-medium">Impact (U/Rev/Mgn)</th>
+                  <th className="p-3 text-primary-foreground font-medium">Risks</th>
+                  <th className="p-3 text-primary-foreground font-medium">Confidence</th>
+                </tr>
+              </thead>
+              <tbody>
+                {FinalPlan.actions?.map((a, i) => (
+                  <tr key={i} className="border-t border-primary-foreground/10">
+                    <td className="p-3 text-primary-foreground/90 font-medium">
+                      {a.action_type.replace('_', ' ')}
+                    </td>
+                    <td className="p-3 text-primary-foreground/80">
+                      <div>{a.target_type}</div>
+                      <div className="text-xs text-primary-foreground/60">
+                        {a.ids?.join(", ")}
+                      </div>
+                    </td>
+                    <td className="p-3 text-primary-foreground/90 font-mono">
+                      {(a.magnitude_pct * 100).toFixed(1)}%
+                    </td>
+                    <td className="p-3 text-primary-foreground/80 text-xs">
+                      <div>U: {a.expected_impact?.units?.toFixed(0) ?? "-"}</div>
+                      <div>Rev: {a.expected_impact?.revenue?.toFixed(0) ?? "-"}</div>
+                      <div>Mgn: {a.expected_impact?.margin?.toFixed(0) ?? "-"}</div>
+                    </td>
+                    <td className="p-3 text-primary-foreground/70 text-xs max-w-48">
+                      {a.risks?.slice(0, 2).join("; ") || "-"}
+                    </td>
+                    <td className="p-3 text-primary-foreground/90 font-mono">
+                      {(a.confidence ?? 0).toFixed(2)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {FinalPlan.rationale && (
+            <div className="mt-4 p-3 bg-background/10 rounded-lg">
+              <div className="text-sm font-medium text-primary-foreground/90 mb-1">Rationale:</div>
+              <div className="text-sm text-primary-foreground/80">{FinalPlan.rationale}</div>
+            </div>
+          )}
+        </Card>
+      )}
+
+      {/* Citations */}
+      {resp?.citations && (
+        <details className="group">
+          <summary className="cursor-pointer text-sm font-medium text-muted-foreground hover:text-foreground transition-colors p-3 bg-muted rounded-lg">
+            Evidence & Citations (RAG) - Click to expand
+          </summary>
+          <Card className="mt-2 p-4 bg-background border">
+            <pre className="text-xs whitespace-pre-wrap text-muted-foreground font-mono leading-relaxed">
+              {resp.citations.join("\n\n---\n\n")}
+            </pre>
+          </Card>
+        </details>
+      )}
     </div>
   );
-};
-
-export default AgenticHuddle;
+}
