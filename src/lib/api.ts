@@ -14,11 +14,17 @@ async function tryHealth(base: string, timeoutMs = 2500): Promise<boolean> {
   try {
     const ctrl = new AbortController();
     const t = setTimeout(() => ctrl.abort(), timeoutMs);
-    const res = await fetch(`${base.replace(/\/$/, '')}/health`, { signal: ctrl.signal });
+    // Try both /healthz and /health for compatibility
+    let res;
+    try {
+      res = await fetch(`${base.replace(/\/$/, '')}/healthz`, { signal: ctrl.signal });
+    } catch {
+      res = await fetch(`${base.replace(/\/$/, '')}/health`, { signal: ctrl.signal });
+    }
     clearTimeout(t);
     if (!res.ok) return false;
     const j = await res.json().catch(() => ({}));
-    return Boolean(j) && (j.status === 'healthy' || j.version);
+    return Boolean(j) && (j.ok === true || j.status === 'healthy' || j.version);
   } catch {
     return false;
   }
@@ -28,9 +34,13 @@ async function resolveApiBase() {
   const candidates = [
     localStorage.getItem('API_BASE_OVERRIDE') || '',
     (import.meta as any).env?.VITE_API_BASE || '',
-    // Heuristics for common dual-service domains
+    // More comprehensive heuristics for Cloud Run patterns
     window.location.origin.replace('-ui', '-api'),
     window.location.origin.replace('ui-', 'api-'),
+    window.location.origin.replace('ppa-ui', 'ppa-api'),
+    // Try common patterns for your project ID
+    `https://ppa-api-526d60d2-b2b5-465a-b564-1a6f46672e47.lovableproject.com`,
+    `https://526d60d2-b2b5-465a-b564-1a6f46672e47-api.lovableproject.com`,
     window.location.origin, // same-origin (only if backend co-hosted)
     'http://localhost:8000',
     'http://localhost:8080',
