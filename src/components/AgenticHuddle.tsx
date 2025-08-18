@@ -33,12 +33,19 @@ export default function AgenticHuddle() {
 
   const start = async () => {
     setLoading(true); setError(""); setResp(null);
+    console.log('[Huddle] Starting with:', { q, budget, API_BASE });
     try {
-      const r = await axios.post(`${API_BASE}/huddle/run`, { q, budget }, { timeout: 60000 });
+      const r = await axios.post(`${API_BASE}/huddle/run`, { q, budget }, { 
+        timeout: 60000,
+        headers: { 'Content-Type': 'application/json' }
+      });
+      console.log('[Huddle] Response received:', r.data);
       setResp(r.data);
     } catch (e: any) {
+      console.error('[Huddle] Error:', e);
+      const status = e?.response?.status;
       const msg = e?.response?.data?.detail || e?.response?.data?.error || e?.message || "Failed to run huddle";
-      setError(msg);
+      setError(status ? `${status}: ${msg}` : msg);
     } finally { 
       setLoading(false); 
     }
