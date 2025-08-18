@@ -1,7 +1,8 @@
 import axios from 'axios';
 
-// Hybrid API base resolution: prefer same-origin /api proxy; fallback to direct URL or override
-export let API_BASE: string = "/api";
+// Prefer explicit override for dev; else same-origin /api
+const OVERRIDE = localStorage.getItem('API_BASE_OVERRIDE') || '';
+export let API_BASE: string = OVERRIDE || '/api';
 
 const api = axios.create({
   baseURL: API_BASE,
@@ -14,13 +15,11 @@ async function tryHealth(base: string, timeoutMs = 2500): Promise<boolean> {
     const t = setTimeout(() => ctrl.abort(), timeoutMs);
     const norm = (b: string) => b.replace(/\/$/, "");
     const baseNorm = norm(base);
-    const isRelative = baseNorm.startsWith('/');
-    const url = (path: string) => isRelative ? `${baseNorm}${path}` : `${baseNorm}${path}`;
     let res: Response | undefined;
     try {
-      res = await fetch(url('/healthz'), { signal: ctrl.signal });
+      res = await fetch(`${baseNorm}/healthz`, { signal: ctrl.signal });
     } catch {
-      res = await fetch(url('/health'), { signal: ctrl.signal });
+      res = await fetch(`${baseNorm}/health`, { signal: ctrl.signal });
     }
     clearTimeout(t);
     if (!res || !res.ok) return false;

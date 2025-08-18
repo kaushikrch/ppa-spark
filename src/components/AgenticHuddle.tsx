@@ -34,18 +34,29 @@ export default function AgenticHuddle() {
   const start = async () => {
     setLoading(true); setError(""); setResp(null);
     console.log('[Huddle] Starting with:', { q, budget, API_BASE });
+    const url = `${API_BASE}/huddle/run`;
+    const legacyUrl = `${API_BASE}/agents/huddle`;
     try {
-      const r = await axios.post(`${API_BASE}/huddle/run`, { q, budget }, { 
+      // Preferred: JSON body to /huddle/run
+      const r = await axios.post(url, { q, budget }, { 
         timeout: 60000,
         headers: { 'Content-Type': 'application/json' }
       });
       console.log('[Huddle] Response received:', r.data);
       setResp(r.data);
-    } catch (e: any) {
-      console.error('[Huddle] Error:', e);
-      const status = e?.response?.status;
-      const msg = e?.response?.data?.detail || e?.response?.data?.error || e?.message || "Failed to run huddle";
-      setError(status ? `${status}: ${msg}` : msg);
+    } catch (e1: any) {
+      console.warn('[Huddle] Primary endpoint failed, trying legacy...', e1?.response?.status, e1?.message);
+      try {
+        // Fallback: legacy endpoint with query params
+        const r2 = await axios.post(legacyUrl, null, { params: { question: q, budget }, timeout: 60000 });
+        console.log('[Huddle] Legacy response:', r2.data);
+        setResp(r2.data);
+      } catch (e2: any) {
+        console.error('[Huddle] Both endpoints failed', { primary: e1, legacy: e2 });
+        const status = e2?.response?.status || e1?.response?.status;
+        const msg = e2?.response?.data?.detail || e2?.response?.data?.message || e1?.response?.data?.detail || e1?.message || 'Failed to run huddle';
+        setError(status ? `${status}: ${msg}` : msg);
+      }
     } finally { 
       setLoading(false); 
     }
