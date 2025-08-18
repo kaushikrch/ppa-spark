@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "serve": "node server.js",
+    "serve": "node server.mjs",
     "preview": "vite preview"
   },
   "dependencies": {
