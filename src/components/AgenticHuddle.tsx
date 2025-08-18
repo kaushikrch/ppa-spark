@@ -29,6 +29,7 @@ export default function AgenticHuddle() {
   const [loading, setLoading] = useState(false);
   const [resp, setResp] = useState<any>(null);
   const [error, setError] = useState<string>("");
+  const [apiOverride, setApiOverride] = useState<string>(localStorage.getItem('API_BASE_OVERRIDE') || "");
 
   const start = async () => {
     setLoading(true); 
@@ -38,7 +39,9 @@ export default function AgenticHuddle() {
       const r = await axios.post(`${API_BASE}/huddle/run`, null, { params: { q, budget }});
       setResp(r.data);
     } catch (e: any) {
-      setError(e?.message || "Failed to run huddle");
+      const status = e?.response?.status;
+      const msg = e?.response?.data?.message || e?.response?.data?.detail || e?.message || "Failed to run huddle";
+      setError(status ? `${status}: ${msg} @ ${API_BASE}/huddle/run` : msg);
     } finally {
       setLoading(false);
     }
@@ -85,7 +88,7 @@ export default function AgenticHuddle() {
               />
             </div>
           </div>
-          <div className="flex justify-start">
+          <div className="flex flex-col gap-3">
             <button
               onClick={start}
               disabled={!q || loading}
@@ -93,6 +96,29 @@ export default function AgenticHuddle() {
             >
               {loading ? "Huddle Running..." : "Start Huddle"}
             </button>
+            <details className="rounded-lg p-3 bg-muted">
+              <summary className="cursor-pointer text-sm text-muted-foreground">Advanced API settings</summary>
+              <div className="mt-3 space-y-2 text-xs">
+                <div className="text-muted-foreground">Current API base: <span className="font-mono">{API_BASE}</span></div>
+                <input
+                  className="w-full p-2 rounded-md border border-border bg-background text-foreground"
+                  placeholder="https://your-api-domain"
+                  value={apiOverride}
+                  onChange={e => setApiOverride(e.target.value)}
+                />
+                <div className="flex gap-2">
+                  <button
+                    className="px-3 py-2 rounded-md bg-primary text-primary-foreground"
+                    onClick={() => { localStorage.setItem('API_BASE_OVERRIDE', apiOverride); window.location.reload(); }}
+                  >Save & Use</button>
+                  <button
+                    className="px-3 py-2 rounded-md bg-secondary text-secondary-foreground"
+                    onClick={() => { localStorage.removeItem('API_BASE_OVERRIDE'); localStorage.removeItem('API_BASE_SELECTED'); window.location.reload(); }}
+                  >Clear</button>
+                </div>
+                <div className="text-muted-foreground">If you see 404, ensure your API exposes /huddle/run and /health.</div>
+              </div>
+            </details>
           </div>
         </div>
       </Card>
