@@ -14,6 +14,7 @@ import Simulator from "./pages/Simulator";
 import Optimizer from "./pages/Optimizer";
 import Huddle from "./pages/Huddle";
 import RAG from "./pages/RAG";
+import RAGSearch from "./pages/RAGSearch";
 import Decisions from "./pages/Decisions";
 import NotFound from "./pages/NotFound";
 
@@ -94,7 +95,7 @@ const App = () => (
                 <Route path="/simulator" element={<Simulator />} />
                 <Route path="/optimizer" element={<Optimizer />} />
                 <Route path="/huddle" element={<Huddle />} />
-                <Route path="/rag" element={<RAG />} />
+                <Route path="/rag" element={<RAGSearch />} />
                 <Route path="/decisions" element={<Decisions />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>

@@ -319,16 +319,25 @@ export default function AgenticHuddle() {
         </Card>
       )}
 
-      {/* Citations */}
+      {/* Evidence & Citations */}
       {resp?.citations && (
         <details className="group">
           <summary className="cursor-pointer text-sm font-medium text-muted-foreground hover:text-foreground transition-colors p-3 bg-muted rounded-lg">
             Evidence & Citations (RAG) - Click to expand
           </summary>
           <Card className="mt-2 p-4 bg-background border">
-            <pre className="text-xs whitespace-pre-wrap text-muted-foreground font-mono leading-relaxed">
-              {resp.citations.join("\n\n---\n\n")}
-            </pre>
+            <div className="space-y-3">
+              {resp.citations.map((c: any, i: number) => (
+                <div key={i} className="p-3 bg-muted/50 rounded-lg border">
+                  <div className="text-sm font-semibold text-foreground mb-2">
+                    {c.table} • Score: {c.score?.toFixed(3) || 'N/A'}
+                  </div>
+                  <pre className="text-xs whitespace-pre-wrap text-muted-foreground font-mono leading-relaxed">
+                    {c.snippet || c.text?.slice(0, 500) || 'No content available'}
+                  </pre>
+                </div>
+              ))}
+            </div>
           </Card>
         </details>
       )}

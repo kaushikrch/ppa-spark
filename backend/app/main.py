@@ -6,7 +6,7 @@ from .synth_data import gen_weekly_data
 from .models.elasticities import fit_elasticities
 from .models.simulator import simulate_price_change, simulate_delist
 from .models.optimizer import run_optimizer
-from .rag.indexer import rag
+from .rag.store import rag
 from .agents.orchestrator import agentic_huddle, agentic_huddle_v2
 
 app = FastAPI(title="iNRM PPA+Assortment API", version="1.0.0")
@@ -59,10 +59,13 @@ def optimize(round: int = 1):
     sol, kpis = run_optimizer(round=round)
     return {"solution": sol, "kpis": kpis}
 
+@app.post("/rag/build")
+def rag_build():
+    return rag.build()
+
 @app.get("/rag/search")
-def rag_search(q: str = Query(...)):
-    hits = rag.query(q)
-    return {"hits": [{"doc": h[0], "score": h[1]} for h in hits]}
+def rag_search(q: str, topk: int = 4):
+    return {"hits": rag.query(q, topk=topk)}
 
 @app.get("/genai/insight")
 def insight(panel_id: str, q: str = "Explain the chart succinctly"):
@@ -78,7 +81,7 @@ def insight(panel_id: str, q: str = "Explain the chart succinctly"):
     
     # Get relevant data context from RAG
     hits = rag.query(q)
-    context = "\n".join([h[0][:800] for h, _ in hits[:2]])
+    context = "\n".join([h["text"][:800] for h in hits[:2]])
     
     # Generate insight using Gemini
     prompt = f"""As a data analyst, explain this chart/data insight concisely:

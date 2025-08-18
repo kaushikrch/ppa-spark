@@ -1,7 +1,7 @@
 from typing import Dict, Any, List
 from .llm import chat_json
 from .policies import ACTION_SCHEMA, AGENT_PERSONAS, ROUND_SCRIPT
-from ..rag.indexer import rag
+from ..rag.store import rag
 from ..models.scorer import evaluate_plan, pick_best
 from ..models.optimizer import run_optimizer
 
@@ -12,8 +12,8 @@ def _prompt(agent_name: str, question: str, round_label: str, context_blobs: Lis
     return [{"role":"system","content":sys},{"role":"user","content":user}]
 
 def agentic_huddle_v2(question: str, budget: float = 5e5, debate_rounds: int = 3) -> Dict[str, Any]:
-    hits = rag.query(question, topk=3)
-    context = [h[0] for h in hits]
+    hits = rag.query(question, topk=4)
+    context = [h["text"] for h in hits]
     transcript = []
     candidates: List[Dict[str, Any]] = []
 
@@ -82,7 +82,7 @@ def agentic_huddle_v2(question: str, budget: float = 5e5, debate_rounds: int = 3
       "stopped_after_rounds": 3,
       "transcript": transcript,
       "final": final_json,
-      "citations": [h[0][:500] for h in hits]
+      "citations": [{"table": h["table"], "score": h["score"], "snippet": h["text"][:500]} for h in hits]
     }
 
 # Keep old function for backward compatibility
