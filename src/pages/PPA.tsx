@@ -71,7 +71,9 @@ const PPA: React.FC = () => {
               <Tooltip 
                 cursor={{ strokeDasharray: '3 3' }}
                 formatter={(value, name) => [`₹${Number(value).toFixed(4)}/ml`, name]}
-                labelFormatter={(value) => `${value}ml`}
+                labelFormatter={(label, payload) => 
+                  payload?.[0] ? `${payload[0].payload.pack}` : `${label}ml`
+                }
                 contentStyle={{ 
                   backgroundColor: 'hsl(var(--card))', 
                   border: '1px solid hsl(var(--border))',
@@ -80,25 +82,33 @@ const PPA: React.FC = () => {
               />
               <Scatter 
                 name="Premium Tier" 
-                data={priceLadder.map(d => ({ value: d.value, ppm: d.premium / d.value, pack: d.pack }))}
+                data={priceLadder.map(d => ({ 
+                  value: d.value, 
+                  ppm: Number((d.premium / d.value).toFixed(4)), 
+                  pack: d.pack 
+                }))}
                 fill="hsl(var(--primary))"
-                r={6}
+                r={8}
               />
               <Scatter 
                 name="Core Tier" 
-                data={priceLadder.map(d => ({ value: d.value, ppm: d.core / d.value, pack: d.pack }))}
-                fill="hsl(var(--primary-glow))"
-                r={6}
-              />
-              <Scatter 
-                name="Competitor Avg" 
                 data={priceLadder.map(d => ({ 
                   value: d.value, 
-                  ppm: (d.competitors.reduce((a, b) => a + b, 0) / d.competitors.length) / d.value,
+                  ppm: Number((d.core / d.value).toFixed(4)), 
+                  pack: d.pack 
+                }))}
+                fill="hsl(var(--primary-glow))"
+                r={8}
+              />
+              <Scatter 
+                name="Competitor Average" 
+                data={priceLadder.map(d => ({ 
+                  value: d.value, 
+                  ppm: Number(((d.competitors.reduce((a, b) => a + b, 0) / d.competitors.length) / d.value).toFixed(4)),
                   pack: d.pack 
                 }))}
                 fill="hsl(var(--muted))"
-                r={4}
+                r={6}
               />
             </ScatterChart>
           </ResponsiveContainer>
