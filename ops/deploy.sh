@@ -67,7 +67,7 @@ gcloud run deploy ppa-ui \
   --timeout=60 \
   --max-instances=5 \
   --set-env-vars=API_URL=$API_URL,VITE_API_BASE=$API_URL
-
+  
 # Get UI URL
 UI_URL=$(gcloud run services describe ppa-ui --region=$REGION --format='value(status.url)')
 echo "  UI deployed at: $UI_URL"
