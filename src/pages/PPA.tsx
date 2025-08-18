@@ -70,9 +70,9 @@ const PPA: React.FC = () => {
                 type="number"
                 domain={[0.003, 0.011]}
                 stroke="hsl(var(--muted-foreground))"
-                tickFormatter={(v) => Number(v).toFixed(4)}
+                tickFormatter={(v) => `₹${Number(v).toFixed(3)}`}
                 label={{ 
-                  value: 'Price per ml (₹/ml)', 
+                  value: 'Price per ml (₹)', 
                   angle: -90, 
                   position: 'insideLeft',
                   style: { textAnchor: 'middle' }
@@ -80,7 +80,7 @@ const PPA: React.FC = () => {
               />
               <Tooltip 
                 cursor={{ strokeDasharray: '3 3' }}
-                formatter={(value, name) => [`₹${Number(value).toFixed(4)}/ml`, name]}
+                formatter={(value, name) => [`₹${Number(value).toFixed(3)}/ml`, name]}
                 labelFormatter={(label, payload) => 
                   payload?.[0] ? `${payload[0].payload.pack}` : `${label}ml`
                 }
@@ -143,9 +143,9 @@ const PPA: React.FC = () => {
                 />
                 <YAxis 
                   stroke="hsl(var(--muted-foreground))"
-                  tickFormatter={(v) => Number(v).toFixed(4)}
+                  tickFormatter={(v) => `₹${Number(v).toFixed(3)}`}
                   label={{ 
-                    value: 'Price per ml (₹/ml)', 
+                    value: 'Price per ml (₹)', 
                     angle: -90, 
                     position: 'insideLeft',
                     style: { textAnchor: 'middle' }
@@ -153,7 +153,7 @@ const PPA: React.FC = () => {
                 />
                 <Tooltip 
                   formatter={(value, name) => [
-                    `₹${Number(value).toFixed(4)}/ml`, 
+                    `₹${Number(value).toFixed(3)}/ml`, 
                     typeof name === 'string' ? name.replace('ppm_', '').replace('_', ' ') : String(name)
                   ]}
                   contentStyle={{ 
@@ -218,13 +218,18 @@ const PPA: React.FC = () => {
                   type="number"
                   domain={[0.004, 0.010]}
                   stroke="hsl(var(--muted-foreground))"
-                  tickFormatter={(v) => Number(v).toFixed(4)}
-                  label={{ value: 'Price per ml (₹/ml)', angle: -90, position: 'insideLeft' }}
+                  tickFormatter={(v) => `₹${Number(v).toFixed(3)}`}
+                  label={{ 
+                    value: 'Price per ml (₹)', 
+                    angle: -90, 
+                    position: 'insideLeft',
+                    style: { textAnchor: 'middle' }
+                  }}
                 />
                 <Tooltip 
                   cursor={{ strokeDasharray: '3 3' }}
                   formatter={(value, name, props) => [
-                    name === 'ppm' ? `₹${Number(value).toFixed(4)}/ml` : value,
+                    name === 'ppm' ? `₹${Number(value).toFixed(3)}/ml` : value,
                     name === 'ppm' ? 'Target PPM' : 'Gap Score'
                   ]}
                   labelFormatter={(label, payload) => 
@@ -279,7 +284,7 @@ const PPA: React.FC = () => {
                 </div>
                 <div className="flex items-center justify-between text-sm text-muted-foreground">
                   <span>Target Price: ₹{gap.price}</span>
-                  <span>PPM: ₹{(gap.price / gap.size).toFixed(4)}/ml</span>
+                  <span>PPM: ₹{(gap.price / gap.size).toFixed(3)}/ml</span>
                 </div>
               </div>
             ))}

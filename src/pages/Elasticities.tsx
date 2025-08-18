@@ -3,7 +3,7 @@ import ElasticityMatrix from '../components/ElasticityMatrix';
 import ChartWithInsight from '../components/ChartWithInsight';
 import { Card } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
-import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ScatterChart, Scatter } from 'recharts';
 import { TrendingDown, Target, Zap, Calendar } from 'lucide-react';
 
 const Elasticities: React.FC = () => {
@@ -81,14 +81,15 @@ const Elasticities: React.FC = () => {
         <ChartWithInsight panelId="attribute-importance" title="Attribute Importance (Random Forest SHAP)">
           <div className="h-80">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart 
-                data={attributeData} 
-                layout="horizontal" 
-                margin={{ top: 20, right: 80, bottom: 20, left: 120 }}
+              <ScatterChart 
+                data={attributeData.map((item, index) => ({ ...item, yPos: index }))}
+                margin={{ top: 20, right: 80, bottom: 60, left: 120 }}
               >
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                 <XAxis 
                   type="number" 
+                  dataKey="importance"
+                  domain={[0, 0.4]}
                   stroke="hsl(var(--muted-foreground))"
                   tickFormatter={(v) => `${(v * 100).toFixed(0)}%`}
                   label={{ 
@@ -99,40 +100,52 @@ const Elasticities: React.FC = () => {
                   }}
                 />
                 <YAxis 
-                  dataKey="attribute" 
-                  type="category" 
+                  type="number"
+                  dataKey="yPos"
+                  domain={[-0.5, 4.5]}
                   stroke="hsl(var(--muted-foreground))"
-                  width={100}
+                  tickFormatter={(value) => {
+                    const attr = attributeData[value];
+                    return attr ? attr.attribute : '';
+                  }}
                   tick={{ fontSize: 12 }}
+                  label={{ 
+                    value: 'Attributes', 
+                    angle: -90, 
+                    position: 'insideLeft',
+                    style: { textAnchor: 'middle' }
+                  }}
                 />
                 <Tooltip 
-                  formatter={(value) => [`${(Number(value) * 100).toFixed(1)}%`, 'Importance']}
+                  formatter={(value, name) => [`${(Number(value) * 100).toFixed(1)}%`, 'Importance']}
+                  labelFormatter={(label, payload) => 
+                    payload?.[0] ? payload[0].payload.attribute : label
+                  }
                   contentStyle={{ 
                     backgroundColor: 'hsl(var(--card))', 
                     border: '1px solid hsl(var(--border))',
                     borderRadius: '8px'
                   }} 
                 />
-                <Bar 
+                <Scatter 
                   dataKey="importance" 
                   fill="hsl(var(--primary))" 
-                  radius={[0, 4, 4, 0]}
-                >
-                  {/* Add data labels */}
-                  {attributeData.map((entry, index) => (
-                    <text
-                      key={index}
-                      x={entry.importance * 400 + 10}
-                      y={index * 40 + 35}
-                      fill="hsl(var(--foreground))"
-                      fontSize="12"
-                      fontWeight="500"
-                    >
-                      {(entry.importance * 100).toFixed(1)}%
-                    </text>
-                  ))}
-                </Bar>
-              </BarChart>
+                  r={8}
+                />
+                {/* Add data labels */}
+                {attributeData.map((entry, index) => (
+                  <text
+                    key={index}
+                    x={entry.importance * 1000 + 30}
+                    y={index * 40 + 35}
+                    fill="hsl(var(--foreground))"
+                    fontSize="12"
+                    fontWeight="500"
+                  >
+                    {(entry.importance * 100).toFixed(1)}%
+                  </text>
+                ))}
+              </ScatterChart>
             </ResponsiveContainer>
           </div>
         </ChartWithInsight>
