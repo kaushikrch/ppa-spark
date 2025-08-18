@@ -255,6 +255,12 @@ export default function AgenticHuddle() {
             Final Action Plan: {FinalPlan.plan_name}
           </div>
           
+          {resp?.error && (
+            <div className="text-xs text-amber-700 mt-1">
+              Engine notes: {resp.error}
+            </div>
+          )}
+          
           {FinalPlan.assumptions && FinalPlan.assumptions.length > 0 && (
             <div className="mb-4">
               <div className="text-sm font-medium text-primary-foreground/90 mb-2">Assumptions:</div>
