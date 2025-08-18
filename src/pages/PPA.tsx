@@ -51,19 +51,25 @@ const PPA: React.FC = () => {
       <ChartWithInsight panelId="price-ladder" title="Pack Ladder & Price Per ml">
         <div className="h-80">
           <ResponsiveContainer width="100%" height="100%">
-            <ScatterChart margin={{ top: 20, right: 30, bottom: 20, left: 20 }}>
+            <ScatterChart margin={{ top: 20, right: 30, bottom: 60, left: 40 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
               <XAxis 
                 dataKey="value" 
                 type="number" 
+                domain={[200, 1600]}
                 stroke="hsl(var(--muted-foreground))"
                 label={{ value: 'Pack Size (ml)', position: 'insideBottom', offset: -10 }}
               />
               <YAxis 
+                type="number"
+                domain={[1.5, 6]}
                 stroke="hsl(var(--muted-foreground))"
                 label={{ value: 'Price (₹)', angle: -90, position: 'insideLeft' }}
               />
               <Tooltip 
+                cursor={{ strokeDasharray: '3 3' }}
+                formatter={(value, name) => [`₹${value}`, name]}
+                labelFormatter={(value) => `${value}ml`}
                 contentStyle={{ 
                   backgroundColor: 'hsl(var(--card))', 
                   border: '1px solid hsl(var(--border))',
@@ -71,14 +77,26 @@ const PPA: React.FC = () => {
                 }} 
               />
               <Scatter 
-                name="Premium" 
+                name="Premium Tier" 
                 data={priceLadder.map(d => ({ value: d.value, price: d.premium, pack: d.pack }))}
                 fill="hsl(var(--primary))"
+                r={6}
               />
               <Scatter 
-                name="Core" 
+                name="Core Tier" 
                 data={priceLadder.map(d => ({ value: d.value, price: d.core, pack: d.pack }))}
                 fill="hsl(var(--primary-glow))"
+                r={6}
+              />
+              <Scatter 
+                name="Competitor Avg" 
+                data={priceLadder.map(d => ({ 
+                  value: d.value, 
+                  price: d.competitors.reduce((a, b) => a + b, 0) / d.competitors.length,
+                  pack: d.pack 
+                }))}
+                fill="hsl(var(--muted))"
+                r={4}
               />
             </ScatterChart>
           </ResponsiveContainer>
@@ -90,11 +108,25 @@ const PPA: React.FC = () => {
         <ChartWithInsight panelId="ppm-analysis" title="Price Per ml Efficiency">
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={ppmData}>
+              <BarChart data={ppmData} margin={{ bottom: 60 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis dataKey="pack" stroke="hsl(var(--muted-foreground))" angle={-45} textAnchor="end" height={80} />
-                <YAxis stroke="hsl(var(--muted-foreground))" />
+                <XAxis 
+                  dataKey="pack" 
+                  stroke="hsl(var(--muted-foreground))" 
+                  angle={-45} 
+                  textAnchor="end" 
+                  height={80}
+                  interval={0}
+                />
+                <YAxis 
+                  stroke="hsl(var(--muted-foreground))"
+                  label={{ value: 'Price per ml (₹)', angle: -90, position: 'insideLeft' }}
+                />
                 <Tooltip 
+                  formatter={(value, name) => [
+                    `₹${value}/ml`, 
+                    typeof name === 'string' ? name.replace('ppm_', '').replace('_', ' ') : String(name)
+                  ]}
                   contentStyle={{ 
                     backgroundColor: 'hsl(var(--card))', 
                     border: '1px solid hsl(var(--border))',
@@ -143,19 +175,31 @@ const PPA: React.FC = () => {
         <div className="grid lg:grid-cols-2 gap-6">
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
-              <ScatterChart margin={{ top: 20, right: 30, bottom: 20, left: 20 }}>
+              <ScatterChart margin={{ top: 20, right: 30, bottom: 60, left: 40 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                 <XAxis 
                   dataKey="size" 
                   type="number"
+                  domain={[300, 1400]}
                   stroke="hsl(var(--muted-foreground))"
                   label={{ value: 'Pack Size (ml)', position: 'insideBottom', offset: -10 }}
                 />
                 <YAxis 
+                  dataKey="price"
+                  type="number"
+                  domain={[2.5, 5.5]}
                   stroke="hsl(var(--muted-foreground))"
                   label={{ value: 'Price (₹)', angle: -90, position: 'insideLeft' }}
                 />
                 <Tooltip 
+                  cursor={{ strokeDasharray: '3 3' }}
+                  formatter={(value, name, props) => [
+                    name === 'price' ? `₹${value}` : value,
+                    name === 'price' ? 'Target Price' : 'Gap Score'
+                  ]}
+                  labelFormatter={(label, payload) => 
+                    payload?.[0] ? `${payload[0].payload.size}ml ${payload[0].payload.segment}` : label
+                  }
                   contentStyle={{ 
                     backgroundColor: 'hsl(var(--card))', 
                     border: '1px solid hsl(var(--border))',
@@ -163,14 +207,16 @@ const PPA: React.FC = () => {
                   }} 
                 />
                 <Scatter 
-                  name="Feasible Gaps" 
+                  name="Feasible Opportunities" 
                   data={whitespaceData.filter(d => d.feasible)}
                   fill="hsl(var(--success))"
+                  r={8}
                 />
                 <Scatter 
-                  name="Challenging Gaps" 
+                  name="High Risk Opportunities" 
                   data={whitespaceData.filter(d => !d.feasible)}
                   fill="hsl(var(--warning))"
+                  r={6}
                 />
               </ScatterChart>
             </ResponsiveContainer>
