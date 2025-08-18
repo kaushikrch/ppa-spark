@@ -79,25 +79,31 @@ const Elasticities: React.FC = () => {
       {/* Attribute Importance & Promo Analysis */}
       <div className="grid lg:grid-cols-2 gap-6">
         <ChartWithInsight panelId="attribute-importance" title="Attribute Importance (Random Forest SHAP)">
-          <div className="h-64">
+          <div className="h-80">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart 
                 data={attributeData} 
                 layout="horizontal" 
-                margin={{ top: 20, right: 30, bottom: 20, left: 100 }}
+                margin={{ top: 20, right: 80, bottom: 20, left: 120 }}
               >
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                 <XAxis 
                   type="number" 
                   stroke="hsl(var(--muted-foreground))"
                   tickFormatter={(v) => `${(v * 100).toFixed(0)}%`}
-                  label={{ value: 'Importance Score (%)', position: 'insideBottom', offset: -10 }}
+                  label={{ 
+                    value: 'Importance Score (%)', 
+                    position: 'insideBottom', 
+                    offset: -5,
+                    style: { textAnchor: 'middle' }
+                  }}
                 />
                 <YAxis 
                   dataKey="attribute" 
                   type="category" 
                   stroke="hsl(var(--muted-foreground))"
-                  width={90}
+                  width={100}
+                  tick={{ fontSize: 12 }}
                 />
                 <Tooltip 
                   formatter={(value) => [`${(Number(value) * 100).toFixed(1)}%`, 'Importance']}
@@ -110,26 +116,50 @@ const Elasticities: React.FC = () => {
                 <Bar 
                   dataKey="importance" 
                   fill="hsl(var(--primary))" 
-                  radius={[0, 4, 4, 0]} 
-                />
+                  radius={[0, 4, 4, 0]}
+                >
+                  {/* Add data labels */}
+                  {attributeData.map((entry, index) => (
+                    <text
+                      key={index}
+                      x={entry.importance * 400 + 10}
+                      y={index * 40 + 35}
+                      fill="hsl(var(--foreground))"
+                      fontSize="12"
+                      fontWeight="500"
+                    >
+                      {(entry.importance * 100).toFixed(1)}%
+                    </text>
+                  ))}
+                </Bar>
               </BarChart>
             </ResponsiveContainer>
           </div>
         </ChartWithInsight>
 
         <ChartWithInsight panelId="promo-uplift" title="Promotional Uplift Curves">
-          <div className="h-64">
+          <div className="h-80">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={promoData}>
+              <LineChart data={promoData} margin={{ top: 20, right: 30, bottom: 60, left: 60 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                 <XAxis 
                   dataKey="depth" 
                   stroke="hsl(var(--muted-foreground))"
-                  label={{ value: 'Discount Depth (%)', position: 'insideBottom', offset: -10 }}
+                  label={{ 
+                    value: 'Discount Depth (%)', 
+                    position: 'insideBottom', 
+                    offset: -5,
+                    style: { textAnchor: 'middle' }
+                  }}
                 />
                 <YAxis 
                   stroke="hsl(var(--muted-foreground))"
-                  label={{ value: 'Volume Uplift (%)', angle: -90, position: 'insideLeft' }}
+                  label={{ 
+                    value: 'Volume Uplift (%)', 
+                    angle: -90, 
+                    position: 'insideLeft',
+                    style: { textAnchor: 'middle' }
+                  }}
                 />
                 <Tooltip 
                   contentStyle={{ 
@@ -155,10 +185,27 @@ const Elasticities: React.FC = () => {
       <ChartWithInsight panelId="seasonality" title="Seasonality & Calendar Effects">
         <div className="h-80">
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={seasonalityData}>
+            <BarChart data={seasonalityData} margin={{ top: 20, right: 30, bottom: 60, left: 60 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-              <XAxis dataKey="month" stroke="hsl(var(--muted-foreground))" />
-              <YAxis stroke="hsl(var(--muted-foreground))" />
+              <XAxis 
+                dataKey="month" 
+                stroke="hsl(var(--muted-foreground))"
+                label={{ 
+                  value: 'Month', 
+                  position: 'insideBottom', 
+                  offset: -5,
+                  style: { textAnchor: 'middle' }
+                }}
+              />
+              <YAxis 
+                stroke="hsl(var(--muted-foreground))"
+                label={{ 
+                  value: 'Seasonal Factor', 
+                  angle: -90, 
+                  position: 'insideLeft',
+                  style: { textAnchor: 'middle' }
+                }}
+              />
               <Tooltip 
                 contentStyle={{ 
                   backgroundColor: 'hsl(var(--card))', 

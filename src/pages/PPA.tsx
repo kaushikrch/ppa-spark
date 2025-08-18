@@ -51,14 +51,19 @@ const PPA: React.FC = () => {
       <ChartWithInsight panelId="price-ladder" title="Pack Ladder & Price Per ml">
         <div className="h-80">
           <ResponsiveContainer width="100%" height="100%">
-            <ScatterChart margin={{ top: 20, right: 30, bottom: 60, left: 40 }}>
+            <ScatterChart margin={{ top: 20, right: 30, bottom: 60, left: 80 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
               <XAxis 
                 dataKey="value" 
                 type="number" 
                 domain={[200, 1600]}
                 stroke="hsl(var(--muted-foreground))"
-                label={{ value: 'Pack Size (ml)', position: 'insideBottom', offset: -10 }}
+                label={{ 
+                  value: 'Pack Size (ml)', 
+                  position: 'insideBottom', 
+                  offset: -5,
+                  style: { textAnchor: 'middle' }
+                }}
               />
               <YAxis 
                 dataKey="ppm"
@@ -66,7 +71,12 @@ const PPA: React.FC = () => {
                 domain={[0.003, 0.011]}
                 stroke="hsl(var(--muted-foreground))"
                 tickFormatter={(v) => Number(v).toFixed(4)}
-                label={{ value: 'Price per ml (₹/ml)', angle: -90, position: 'insideLeft' }}
+                label={{ 
+                  value: 'Price per ml (₹/ml)', 
+                  angle: -90, 
+                  position: 'insideLeft',
+                  style: { textAnchor: 'middle' }
+                }}
               />
               <Tooltip 
                 cursor={{ strokeDasharray: '3 3' }}
@@ -118,9 +128,9 @@ const PPA: React.FC = () => {
       {/* Price Per ML Analysis */}
       <div className="grid lg:grid-cols-2 gap-6">
         <ChartWithInsight panelId="ppm-analysis" title="Price Per ml Efficiency">
-          <div className="h-64">
+          <div className="h-80">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={ppmData} margin={{ bottom: 60 }}>
+              <BarChart data={ppmData} margin={{ top: 20, right: 30, bottom: 80, left: 80 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                 <XAxis 
                   dataKey="pack" 
@@ -129,11 +139,17 @@ const PPA: React.FC = () => {
                   textAnchor="end" 
                   height={80}
                   interval={0}
+                  tick={{ fontSize: 12 }}
                 />
                 <YAxis 
                   stroke="hsl(var(--muted-foreground))"
                   tickFormatter={(v) => Number(v).toFixed(4)}
-                  label={{ value: 'Price per ml (₹/ml)', angle: -90, position: 'insideLeft' }}
+                  label={{ 
+                    value: 'Price per ml (₹/ml)', 
+                    angle: -90, 
+                    position: 'insideLeft',
+                    style: { textAnchor: 'middle' }
+                  }}
                 />
                 <Tooltip 
                   formatter={(value, name) => [

@@ -71,10 +71,31 @@ const Assortment: React.FC = () => {
       <ChartWithInsight panelId="msl-compliance" title="MSL vs Actual Distribution">
         <div className="h-80">
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={mslData}>
+            <BarChart data={mslData} margin={{ top: 20, right: 30, bottom: 100, left: 60 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-              <XAxis dataKey="sku" stroke="hsl(var(--muted-foreground))" angle={-45} textAnchor="end" height={100} />
-              <YAxis stroke="hsl(var(--muted-foreground))" />
+              <XAxis 
+                dataKey="sku" 
+                stroke="hsl(var(--muted-foreground))" 
+                angle={-45} 
+                textAnchor="end" 
+                height={100}
+                tick={{ fontSize: 12 }}
+                label={{ 
+                  value: 'SKU', 
+                  position: 'insideBottom', 
+                  offset: -5,
+                  style: { textAnchor: 'middle' }
+                }}
+              />
+              <YAxis 
+                stroke="hsl(var(--muted-foreground))"
+                label={{ 
+                  value: 'Distribution (%)', 
+                  angle: -90, 
+                  position: 'insideLeft',
+                  style: { textAnchor: 'middle' }
+                }}
+              />
               <Tooltip 
                 contentStyle={{ 
                   backgroundColor: 'hsl(var(--card))', 

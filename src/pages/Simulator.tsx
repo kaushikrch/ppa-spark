@@ -261,12 +261,29 @@ const Simulator: React.FC = () => {
           {/* Trend Charts */}
           <div className="grid lg:grid-cols-2 gap-6">
             <ChartWithInsight panelId="volume-trend" title="Volume Response Over Time">
-              <div className="h-64">
+              <div className="h-80">
                 <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={simulationResult.agg}>
+                  <LineChart data={simulationResult.agg} margin={{ top: 20, right: 30, bottom: 60, left: 60 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                    <XAxis dataKey="week" stroke="hsl(var(--muted-foreground))" />
-                    <YAxis stroke="hsl(var(--muted-foreground))" />
+                    <XAxis 
+                      dataKey="week" 
+                      stroke="hsl(var(--muted-foreground))"
+                      label={{ 
+                        value: 'Week', 
+                        position: 'insideBottom', 
+                        offset: -5,
+                        style: { textAnchor: 'middle' }
+                      }}
+                    />
+                    <YAxis 
+                      stroke="hsl(var(--muted-foreground))"
+                      label={{ 
+                        value: 'Units', 
+                        angle: -90, 
+                        position: 'insideLeft',
+                        style: { textAnchor: 'middle' }
+                      }}
+                    />
                     <Tooltip 
                       contentStyle={{ 
                         backgroundColor: 'hsl(var(--card))', 
@@ -287,12 +304,29 @@ const Simulator: React.FC = () => {
             </ChartWithInsight>
 
             <ChartWithInsight panelId="margin-trend" title="Margin Evolution">
-              <div className="h-64">
+              <div className="h-80">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={simulationResult.agg}>
+                  <BarChart data={simulationResult.agg} margin={{ top: 20, right: 30, bottom: 60, left: 60 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                    <XAxis dataKey="week" stroke="hsl(var(--muted-foreground))" />
-                    <YAxis stroke="hsl(var(--muted-foreground))" />
+                    <XAxis 
+                      dataKey="week" 
+                      stroke="hsl(var(--muted-foreground))"
+                      label={{ 
+                        value: 'Week', 
+                        position: 'insideBottom', 
+                        offset: -5,
+                        style: { textAnchor: 'middle' }
+                      }}
+                    />
+                    <YAxis 
+                      stroke="hsl(var(--muted-foreground))"
+                      label={{ 
+                        value: 'Margin (₹)', 
+                        angle: -90, 
+                        position: 'insideLeft',
+                        style: { textAnchor: 'middle' }
+                      }}
+                    />
                     <Tooltip 
                       contentStyle={{ 
                         backgroundColor: 'hsl(var(--card))', 
