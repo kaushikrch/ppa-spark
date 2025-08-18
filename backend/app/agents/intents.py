@@ -17,7 +17,7 @@ Intent = Literal[
 
 def classify_intent(q: str) -> Intent:
     s = q.lower()
-    if any(k in s for k in ["delist", "remove", "tail", "underperform", "rationaliz"]):
+    if any(k in s for k in ["delist", "remove", "tail", "underperform", "rationalize"]):
         return "DELISTING"
     if any(k in s for k in ["enlist", "launch", "add", "introduce", "new sku", "npi", "innovation"]):
         return "ENLISTING"
