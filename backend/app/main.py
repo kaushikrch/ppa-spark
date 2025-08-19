@@ -27,8 +27,9 @@ app.add_middleware(
 def root():
     return {"message": "iNRM PPA+Assortment API", "version": "1.0.0"}
 
-@app.get("/healthz")
+@app.api_route("/healthz", methods=["GET", "HEAD"], include_in_schema=False)
 def healthz():
+    """Health check endpoint used by Cloud Run and monitoring probes."""
     return {"ok": True}
 
 @app.get("/health")
