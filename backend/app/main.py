@@ -9,6 +9,7 @@ from .models.simulator import simulate_price_change, simulate_delist
 from .models.optimizer import run_optimizer
 from .rag.store import rag
 from .agents.orchestrator import agentic_huddle, agentic_huddle_v2
+from .utils.secrets import get_gemini_api_key
 
 app = FastAPI(title="iNRM PPA+Assortment API", version="1.0.0")
 
@@ -72,12 +73,12 @@ def rag_search(q: str, topk: int = 4):
 @app.get("/genai/insight")
 def insight(panel_id: str, q: str = "Explain the chart succinctly"):
     import google.generativeai as genai
-    
+
     # Configure Gemini
-    api_key = os.getenv('GEMINI_API_KEY')
+    api_key = get_gemini_api_key()
     if not api_key:
         return {"insight": "Gemini API key not configured."}
-    
+
     genai.configure(api_key=api_key)
     model = genai.GenerativeModel('gemini-1.5-flash')
     
