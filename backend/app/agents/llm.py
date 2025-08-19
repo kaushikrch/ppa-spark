@@ -3,10 +3,11 @@ from typing import List, Dict, Any
 
 import httpx
 
-from ..utils.secrets import get_gemini_api_key
+from ..utils.secrets import get_gemini_api_key, get_openai_api_key
 
+_OPENAI_API_KEY = get_openai_api_key()
 # Try OpenAI first
-OPENAI_OK = bool(os.getenv("OPENAI_API_KEY"))
+OPENAI_OK = bool(_OPENAI_API_KEY)
 _GEMINI_API_KEY = get_gemini_api_key()
 GEMINI_OK = bool(_GEMINI_API_KEY)
 
@@ -17,7 +18,7 @@ if OPENAI_OK:
     # when auto-detecting proxy settings. Construct a client ourselves so
     # the SDK doesn't try to pass the deprecated argument.
     _http_client = httpx.Client(follow_redirects=True, timeout=60, trust_env=False)
-    _oai = OpenAI(api_key=os.getenv("OPENAI_API_KEY"), http_client=_http_client)
+    _oai = OpenAI(api_key=_OPENAI_API_KEY, http_client=_http_client)
 
 def _openai_chat_json(messages, temperature, top_p, model):
     resp = _oai.chat.completions.create(
