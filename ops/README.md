@@ -160,6 +160,7 @@ The following are automatically configured by Cloud Run:
 - `VITE_API_BASE`: Frontend → Backend URL
 - `PROJECT_ID`: GCP project identifier
 - `REGION`: Deployment region
+- `GEMINI_API_KEY`: Retrieved from Secret Manager (`gemini-api-key`)
 
 ## 📊 Data Model
 

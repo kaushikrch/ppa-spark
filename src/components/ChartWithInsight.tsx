@@ -1,8 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { Card } from './ui/card';
 import { Button } from './ui/button';
 import { Brain, Loader2 } from 'lucide-react';
-import { geminiService } from '../lib/gemini';
+import { apiService } from '../lib/api';
 
 interface ChartWithInsightProps {
   panelId: string;
@@ -24,17 +24,8 @@ const ChartWithInsight: React.FC<ChartWithInsightProps> = ({
   const generateInsight = async () => {
     setLoading(true);
     try {
-      let result: string;
-      
-      if (geminiService) {
-        // Use Gemini AI for real insights
-        result = await geminiService.generateInsight(panelId, title);
-      } else {
-        // Fallback to mock insights
-        result = generateMockInsight(panelId, title);
-      }
-      
-      setInsight(result);
+      const { data } = await apiService.getInsight(panelId, title);
+      setInsight(data.insight);
       setShowInsight(true);
     } catch (error) {
       console.error('Insight generation failed, using fallback:', error);
