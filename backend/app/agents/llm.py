@@ -1,13 +1,20 @@
 import os, json, time
 from typing import List, Dict, Any
 
+import httpx
+
 # Try OpenAI first
 OPENAI_OK = bool(os.getenv("OPENAI_API_KEY"))
 GEMINI_OK = bool(os.getenv("GEMINI_API_KEY"))
 
+_oai = None
 if OPENAI_OK:
     from openai import OpenAI
-    _oai = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+    # httpx>=0.28 removed the ``proxies`` kwarg used by the OpenAI client
+    # when auto-detecting proxy settings. Construct a client ourselves so
+    # the SDK doesn't try to pass the deprecated argument.
+    _http_client = httpx.Client(follow_redirects=True, timeout=60, trust_env=False)
+    _oai = OpenAI(api_key=os.getenv("OPENAI_API_KEY"), http_client=_http_client)
 
 def _openai_chat_json(messages, temperature, top_p, model):
     resp = _oai.chat.completions.create(
