@@ -44,7 +44,7 @@ gcloud run deploy ppa-api \
   --max-instances=10
 
 # Get API URL
-API_URL=$(gcloud run services describe ppa-api --region=$REGION --format='value(status.url)')
+API_URL=$(gcloud run services describe ppa-api --region=$REGION --format='value(status.address.url)')
 echo "  API deployed at: $API_URL"
 
 # Build UI with API URL
@@ -69,7 +69,7 @@ gcloud run deploy ppa-ui \
   --set-env-vars=API_URL=$API_URL,VITE_API_BASE=$API_URL
   
 # Get UI URL
-UI_URL=$(gcloud run services describe ppa-ui --region=$REGION --format='value(status.url)')
+UI_URL=$(gcloud run services describe ppa-ui --region=$REGION --format='value(status.address.url)')
 echo "  UI deployed at: $UI_URL"
 
 # Configure CORS and OpenAI env on API
