@@ -90,7 +90,7 @@ const Landing: React.FC = () => {
 
       {/* Trend Charts */}
       <div className="grid lg:grid-cols-2 gap-6">
-        <ChartWithInsight panelId="revenue-trend" title="Revenue & Volume Trends">
+        <ChartWithInsight panelId="revenue-trend" title="Revenue & Volume Trends" data={trendData}>
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={trendData}>
@@ -123,7 +123,7 @@ const Landing: React.FC = () => {
           </div>
         </ChartWithInsight>
 
-        <ChartWithInsight panelId="channel-mix" title="Channel Performance Mix">
+        <ChartWithInsight panelId="channel-mix" title="Channel Performance Mix" data={channelData}>
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
@@ -168,7 +168,7 @@ const Landing: React.FC = () => {
       </div>
 
       {/* Brand Performance */}
-      <ChartWithInsight panelId="brand-performance" title="Brand Performance: Revenue vs Margin %">
+      <ChartWithInsight panelId="brand-performance" title="Brand Performance: Revenue vs Margin %" data={brandPerformance}>
         <div className="h-80">
           <ResponsiveContainer width="100%" height="100%">
             <ComposedChart data={brandPerformance} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>

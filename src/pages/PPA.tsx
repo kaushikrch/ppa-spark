@@ -48,7 +48,7 @@ const PPA: React.FC = () => {
       </div>
 
       {/* Price Ladder Analysis */}
-      <ChartWithInsight panelId="price-ladder" title="Pack Ladder & Price Per ml">
+      <ChartWithInsight panelId="price-ladder" title="Pack Ladder & Price Per ml" data={priceLadder}>
         <div className="h-80">
           <ResponsiveContainer width="100%" height="100%">
             <ScatterChart margin={{ top: 20, right: 30, bottom: 60, left: 80 }}>
@@ -127,7 +127,7 @@ const PPA: React.FC = () => {
 
       {/* Price Per ML Analysis */}
       <div className="grid lg:grid-cols-2 gap-6">
-        <ChartWithInsight panelId="ppm-analysis" title="Price Per ml Efficiency">
+        <ChartWithInsight panelId="ppm-analysis" title="Price Per ml Efficiency" data={ppmData}>
           <div className="h-80">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={ppmData} margin={{ top: 20, right: 30, bottom: 80, left: 80 }}>
@@ -200,7 +200,7 @@ const PPA: React.FC = () => {
       </div>
 
       {/* Whitespace Opportunities */}
-      <ChartWithInsight panelId="whitespace-matrix" title="Whitespace Opportunity Matrix">
+      <ChartWithInsight panelId="whitespace-matrix" title="Whitespace Opportunity Matrix" data={whitespaceData}>
         <div className="grid lg:grid-cols-2 gap-6">
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">

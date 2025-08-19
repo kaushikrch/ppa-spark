@@ -288,7 +288,7 @@ const Simulator: React.FC = () => {
 
           {/* Trend Charts */}
           <div className="grid lg:grid-cols-2 gap-6">
-            <ChartWithInsight panelId="volume-trend" title="Volume Response Over Time">
+            <ChartWithInsight panelId="volume-trend" title="Volume Response Over Time" data={simulationResult.agg}>
               <div className="h-80">
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={simulationResult.agg} margin={{ top: 20, right: 30, bottom: 60, left: 60 }}>
@@ -331,7 +331,7 @@ const Simulator: React.FC = () => {
               </div>
             </ChartWithInsight>
 
-            <ChartWithInsight panelId="margin-trend" title="Margin Evolution">
+            <ChartWithInsight panelId="margin-trend" title="Margin Evolution" data={simulationResult.agg}>
               <div className="h-80">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={simulationResult.agg} margin={{ top: 20, right: 30, bottom: 60, left: 60 }}>

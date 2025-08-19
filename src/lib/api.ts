@@ -71,8 +71,12 @@ export const apiService = {
   ragSearch: (q: string): Promise<{data: {hits: Array<{doc: string; score: number}>}}> =>
     api.get("/rag/search", { params: { q } }),
 
-  getInsight: (panelId: string, q?: string): Promise<{data: {insight: string}}> =>
-    api.get("/genai/insight", { params: { panel_id: panelId, q } }),
+  getInsight: (
+    panelId: string,
+    q?: string,
+    data?: Array<Record<string, unknown>>
+  ): Promise<{data: {insight: string}}> =>
+    api.post("/genai/insight", { panel_id: panelId, q, data }),
 
   agenticHuddle: (question: string, budget?: number) =>
     api.post("/huddle/run", { q: question, budget }),
