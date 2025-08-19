@@ -41,7 +41,7 @@ gcloud run deploy ppa-api \
   --allow-unauthenticated \
   --port=8080 \
   --memory=16Gi \
-  --cpu=2 \
+  --cpu=4 \
   --timeout=1200 \
   --max-instances=10
 
@@ -64,10 +64,10 @@ gcloud run deploy ppa-ui \
   --region=$REGION \
   --allow-unauthenticated \
   --port=3000 \
-  --memory=2Gi \
-  --cpu=1 \
+  --memory=4Gi \
+  --cpu=2 \
   --timeout=1000 \
-  --max-instances=5 \
+  --max-instances=10 \
   --set-env-vars=API_URL=$API_URL,VITE_API_BASE=$API_URL
   
 # Get UI URL (always the default Cloud Run URL)
