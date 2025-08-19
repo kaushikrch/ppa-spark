@@ -161,6 +161,7 @@ The following are automatically configured by Cloud Run:
 - `PROJECT_ID`: GCP project identifier
 - `REGION`: Deployment region
 - `GEMINI_API_KEY`: Retrieved from Secret Manager (`gemini-api-key`)
+- `OPENAI_API_KEY`: Retrieved from Secret Manager (`open-ai-api-key`)
 
 ## 📊 Data Model
 

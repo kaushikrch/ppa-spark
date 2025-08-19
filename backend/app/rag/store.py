@@ -5,6 +5,7 @@ import pandas as pd
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 from ..utils.io import engine
+from ..utils.secrets import get_openai_api_key
 
 import httpx
 
@@ -23,7 +24,7 @@ def _get_openai():
         try:
             from openai import OpenAI
             http_client = httpx.Client(follow_redirects=True, timeout=60, trust_env=False)
-            _OPENAI = OpenAI(api_key=os.getenv("OPENAI_API_KEY"), http_client=http_client)
+            _OPENAI = OpenAI(api_key=get_openai_api_key(), http_client=http_client)
         except Exception:
             _OPENAI = None
     return _OPENAI
@@ -87,7 +88,7 @@ class RAGStore:
         self.docs, self.meta = blobs, meta
 
         # Try FAISS with OpenAI embeddings; fallback to TF-IDF
-        use_dense = bool(os.getenv("OPENAI_API_KEY")) and FAISS_OK
+        use_dense = bool(get_openai_api_key()) and FAISS_OK
         if use_dense:
             try:
                 vecs = _embed_texts(self.docs)
