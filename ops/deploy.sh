@@ -40,9 +40,9 @@ gcloud run deploy ppa-api \
   --region=$REGION \
   --allow-unauthenticated \
   --port=8080 \
-  --memory=2Gi \
-  --cpu=1 \
-  --timeout=300 \
+  --memory=4Gi \
+  --cpu=2 \
+  --timeout=600 \
   --max-instances=10
 
 # Get API URL (use Cloud Run-provided URL to avoid custom-domain latency issues)
@@ -64,9 +64,9 @@ gcloud run deploy ppa-ui \
   --region=$REGION \
   --allow-unauthenticated \
   --port=3000 \
-  --memory=1Gi \
+  --memory=2Gi \
   --cpu=1 \
-  --timeout=60 \
+  --timeout=120 \
   --max-instances=5 \
   --set-env-vars=API_URL=$API_URL,VITE_API_BASE=$API_URL
   

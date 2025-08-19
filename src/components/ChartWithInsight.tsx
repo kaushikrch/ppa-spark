@@ -9,13 +9,15 @@ interface ChartWithInsightProps {
   title: string;
   children: React.ReactNode;
   className?: string;
+  data?: Array<Record<string, unknown>>;
 }
 
-const ChartWithInsight: React.FC<ChartWithInsightProps> = ({ 
-  panelId, 
-  title, 
-  children, 
-  className = "" 
+const ChartWithInsight: React.FC<ChartWithInsightProps> = ({
+  panelId,
+  title,
+  children,
+  className = "",
+  data = []
 }) => {
   const [insight, setInsight] = useState<string>("");
   const [loading, setLoading] = useState(false);
@@ -24,8 +26,8 @@ const ChartWithInsight: React.FC<ChartWithInsightProps> = ({
   const generateInsight = async () => {
     setLoading(true);
     try {
-      const { data } = await apiService.getInsight(panelId, title);
-      setInsight(data.insight);
+      const { data: resp } = await apiService.getInsight(panelId, title, data);
+      setInsight(resp.insight);
       setShowInsight(true);
     } catch (error) {
       console.error('Insight generation failed, using fallback:', error);

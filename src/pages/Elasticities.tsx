@@ -78,7 +78,7 @@ const Elasticities: React.FC = () => {
 
       {/* Attribute Importance & Promo Analysis */}
       <div className="grid lg:grid-cols-2 gap-6">
-        <ChartWithInsight panelId="attribute-importance" title="Attribute Importance (Random Forest SHAP)">
+        <ChartWithInsight panelId="attribute-importance" title="Attribute Importance (Random Forest SHAP)" data={attributeData}>
           <div className="h-80">
             <ResponsiveContainer width="100%" height="100%">
               <ScatterChart margin={{ top: 20, right: 80, bottom: 60, left: 140 }}>
@@ -136,7 +136,7 @@ const Elasticities: React.FC = () => {
           </div>
         </ChartWithInsight>
 
-        <ChartWithInsight panelId="promo-uplift" title="Promotional Uplift Curves">
+        <ChartWithInsight panelId="promo-uplift" title="Promotional Uplift Curves" data={promoData}>
           <div className="h-80">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={promoData} margin={{ top: 20, right: 30, bottom: 60, left: 60 }}>
@@ -181,7 +181,7 @@ const Elasticities: React.FC = () => {
       </div>
 
       {/* Seasonality & Calendar Effects */}
-      <ChartWithInsight panelId="seasonality" title="Seasonality & Calendar Effects">
+      <ChartWithInsight panelId="seasonality" title="Seasonality & Calendar Effects" data={seasonalityData}>
         <div className="h-80">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={seasonalityData} margin={{ top: 20, right: 30, bottom: 60, left: 60 }}>

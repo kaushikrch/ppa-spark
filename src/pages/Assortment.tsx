@@ -68,7 +68,7 @@ const Assortment: React.FC = () => {
       </div>
 
       {/* MSL vs Actual Performance */}
-      <ChartWithInsight panelId="msl-compliance" title="MSL vs Actual Distribution">
+      <ChartWithInsight panelId="msl-compliance" title="MSL vs Actual Distribution" data={mslData}>
         <div className="h-80">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={mslData} margin={{ top: 20, right: 30, bottom: 100, left: 60 }}>

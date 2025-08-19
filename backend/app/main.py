@@ -70,9 +70,14 @@ def rag_build():
 def rag_search(q: str, topk: int = 4):
     return {"hits": rag.query(q, topk=topk)}
 
-@app.get("/genai/insight")
-def insight(panel_id: str, q: str = "Explain the chart succinctly"):
+@app.post("/genai/insight")
+def insight(payload: dict):
+    import pandas as pd
     import google.generativeai as genai
+
+    panel_id = payload.get("panel_id", "unknown")
+    q = payload.get("q", "Explain the chart succinctly")
+    data = payload.get("data")
 
     # Configure Gemini
     api_key = get_gemini_api_key()
@@ -81,12 +86,15 @@ def insight(panel_id: str, q: str = "Explain the chart succinctly"):
 
     genai.configure(api_key=api_key)
     model = genai.GenerativeModel('gemini-1.5-flash')
-    
-    # Get relevant data context from RAG
-    hits = rag.query(q)
-    context = "\n".join([h["text"][:800] for h in hits[:2]])
-    
-    # Generate insight using Gemini
+
+    if data:
+        df = pd.DataFrame(data)
+        table = df.to_csv(index=False)
+        context = f"Data table (CSV):\n{table}"
+    else:
+        hits = rag.query(q)
+        context = "\n".join([h["text"][:800] for h in hits[:2]])
+
     prompt = f"""As a data analyst, explain this chart/data insight concisely:
 
 Panel: {panel_id}
