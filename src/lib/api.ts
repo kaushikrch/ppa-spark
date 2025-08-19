@@ -1,7 +1,9 @@
 import axios from "axios";
 
-// Always use same-origin proxy; Express will forward /api/* -> FastAPI
-export const API_BASE = "/api";
+// Determine API base: allow localStorage override, build-time env or fallback to proxy
+const storedOverride =
+  typeof window !== "undefined" ? localStorage.getItem("API_BASE_OVERRIDE") : null;
+export const API_BASE = storedOverride || import.meta.env.VITE_API_BASE || "/api";
 
 const api = axios.create({
   baseURL: API_BASE,
