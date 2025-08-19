@@ -3,9 +3,12 @@ from typing import List, Dict, Any
 
 import httpx
 
+from ..utils.secrets import get_gemini_api_key
+
 # Try OpenAI first
 OPENAI_OK = bool(os.getenv("OPENAI_API_KEY"))
-GEMINI_OK = bool(os.getenv("GEMINI_API_KEY"))
+_GEMINI_API_KEY = get_gemini_api_key()
+GEMINI_OK = bool(_GEMINI_API_KEY)
 
 _oai = None
 if OPENAI_OK:
@@ -28,7 +31,7 @@ def _openai_chat_json(messages, temperature, top_p, model):
 
 def _gemini_chat_json(messages, temperature, top_p):
     import google.generativeai as genai
-    genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+    genai.configure(api_key=_GEMINI_API_KEY)
     # Concatenate messages to a single prompt; ask for pure JSON
     sys = "\n".join(m["content"] for m in messages if m["role"]=="system")
     usr = "\n".join(m["content"] for m in messages if m["role"]=="user")

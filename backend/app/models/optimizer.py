@@ -33,7 +33,15 @@ def run_optimizer(max_pct_change_round1=0.20, max_pct_change_round2=0.40, spend_
     M = LpProblem("ppa_opt", LpMaximize)
 
     # Decision vars: pct change x_i, abs change a_i, bound flag z_i
-    x = {i: LpVariable(f"x_{int(r.sku_id)}", lowBound=-max_pct_change_round1 if round==1 else -max_pct_change_round2, upBound=max_pct_change_round1 if round==1 else max_pct_change_round2, cat=LpContinuous) for i, r in df.iterrows()}
+    x = {
+        i: LpVariable(
+            f"x_{int(r.sku_id)}",
+            lowBound=-max_pct_change_round1 if round == 1 else -max_pct_change_round2,
+            upBound=max_pct_change_round1 if round == 1 else max_pct_change_round2,
+            cat=LpContinuous,
+        )
+        for i, r in df.iterrows()
+    }
     a = {i: LpVariable(f"a_{int(r.sku_id)}", lowBound=0, cat=LpContinuous) for i, r in df.iterrows()}
     z = {i: LpVariable(f"z_{int(r.sku_id)}", lowBound=0, upBound=1, cat=LpBinary) for i, r in df.iterrows()}
 
@@ -56,11 +64,16 @@ def run_optimizer(max_pct_change_round1=0.20, max_pct_change_round2=0.40, spend_
     est_spend = lpSum([df.loc[i,"p0"] * (-x[i]) * df.loc[i,"base_units"] for i in x])
     M += est_spend <= spend_budget
 
-    # Objective: maximize margin using elasticity response approximation
-    # units_i(x) ≈ base * exp(elast * ln(1+x))  (first-order approx)
-    # Use a convexified surrogate: units ≈ base * (1 + elast*x)
-    profit = lpSum([ ( (df.loc[i,"p0"]*(1+x[i]) - (df.loc[i,"cogs_per_unit"]+df.loc[i,"logistics_per_unit"]) )
-                      * ( df.loc[i,"base_units"] * (1 + df.loc[i,"own_elast"]*x[i]) ) ) for i in x ])
+    # Objective: maximize margin using a linearized elasticity response
+    # Δmargin ≈ base_units * ((p0 - cost) * own_elast + p0) * x_i
+    margin_coef = {
+        i: df.loc[i, "base_units"] * (
+            (df.loc[i, "p0"] - (df.loc[i, "cogs_per_unit"] + df.loc[i, "logistics_per_unit"])) * df.loc[i, "own_elast"]
+            + df.loc[i, "p0"]
+        )
+        for i in x
+    }
+    profit = lpSum([margin_coef[i] * x[i] for i in x])
 
     # Regularization to discourage large changes (lambda)
     lam = 0.05
