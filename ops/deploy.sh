@@ -7,6 +7,7 @@ echo "🚀 Deploying iNRM PPA+Assortment Dashboard to GCP Cloud Run"
 PROJECT_ID=${PROJECT_ID:-$(gcloud config get-value project)}
 REGION=${REGION:-asia-south1}
 REPO=${REPO:-ppa-assortment-repo}
+GEMINI_SECRET=${GEMINI_SECRET:-gemini-api-key}
 
 echo "📋 Configuration:"
 echo "  Project ID: $PROJECT_ID"
@@ -77,7 +78,8 @@ echo "🔧 Configuring API environment..."
 gcloud run services update ppa-api \
   --region=$REGION \
   --set-env-vars=CORS_ORIGINS=$UI_URL,OPENAI_MODEL=gpt-4o-mini \
-  --set-env-vars=OPENAI_API_KEY=${OPENAI_API_KEY:?OPENAI_API_KEY not set}
+  --set-env-vars=OPENAI_API_KEY=${OPENAI_API_KEY:?OPENAI_API_KEY not set} \
+  --set-secrets=GEMINI_API_KEY=$GEMINI_SECRET:latest
 
 
 # Smoke tests
