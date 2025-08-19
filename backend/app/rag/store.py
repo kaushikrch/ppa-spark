@@ -6,6 +6,8 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 from ..utils.io import engine
 
+import httpx
+
 try:
     import faiss  # optional
     FAISS_OK = True
@@ -20,7 +22,8 @@ def _get_openai():
     if _OPENAI is None:
         try:
             from openai import OpenAI
-            _OPENAI = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+            http_client = httpx.Client(follow_redirects=True, timeout=60, trust_env=False)
+            _OPENAI = OpenAI(api_key=os.getenv("OPENAI_API_KEY"), http_client=http_client)
         except Exception:
             _OPENAI = None
     return _OPENAI
