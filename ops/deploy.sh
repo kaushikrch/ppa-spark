@@ -43,8 +43,8 @@ gcloud run deploy ppa-api \
   --timeout=300 \
   --max-instances=10
 
-# Get API URL
-API_URL=$(gcloud run services describe ppa-api --region=$REGION --format='value(status.address.url)')
+# Get API URL (use Cloud Run-provided URL to avoid custom-domain latency issues)
+API_URL=$(gcloud run services describe ppa-api --region=$REGION --format='value(status.url)')
 echo "  API deployed at: $API_URL"
 
 # Build UI with API URL
@@ -68,8 +68,8 @@ gcloud run deploy ppa-ui \
   --max-instances=5 \
   --set-env-vars=API_URL=$API_URL,VITE_API_BASE=$API_URL
   
-# Get UI URL
-UI_URL=$(gcloud run services describe ppa-ui --region=$REGION --format='value(status.address.url)')
+# Get UI URL (always the default Cloud Run URL)
+UI_URL=$(gcloud run services describe ppa-ui --region=$REGION --format='value(status.url)')
 echo "  UI deployed at: $UI_URL"
 
 # Configure CORS and OpenAI env on API
