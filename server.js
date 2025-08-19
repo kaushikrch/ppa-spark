@@ -40,7 +40,7 @@ app.use(express.static(DIST));
 app.get("*", (_, res) => res.sendFile(path.join(DIST, "index.html")));
 
 const port = process.env.PORT || 3000;
-app.listen(port, () =>
+app.listen(port, '0.0.0.0', () =>
   console.log(
     `UI listening on ${port}; API proxy -> ${API_URL || "http://localhost:8080"}`
   )
