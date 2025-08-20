@@ -12,7 +12,7 @@ export const API_TOKEN = storedToken || import.meta.env.VITE_API_TOKEN || "";
 
 const api = axios.create({
   baseURL: API_BASE,
-  timeout: 60000,
+  timeout: 300000,
 });
 
 if (API_TOKEN) {
