@@ -10,9 +10,12 @@ const storedToken =
   typeof window !== "undefined" ? localStorage.getItem("API_TOKEN") : null;
 export const API_TOKEN = storedToken || import.meta.env.VITE_API_TOKEN || "";
 
+export const REQUEST_TIMEOUT_MS =
+  Number(import.meta.env.VITE_REQUEST_TIMEOUT_MS) || 120000;
+
 const api = axios.create({
   baseURL: API_BASE,
-  timeout: 300000,
+  timeout: REQUEST_TIMEOUT_MS,
 });
 
 if (API_TOKEN) {
@@ -88,8 +91,8 @@ export const apiService = {
   ): Promise<{data: {insight: string}}> =>
     api.post("/genai/insight", { panel_id: panelId, q, data }),
 
-  agenticHuddle: (question: string, budget?: number) =>
-    api.post("/huddle/run", { q: question, budget }),
+  agenticHuddle: (question: string, budget?: number, rounds: number = 2) =>
+    api.post("/huddle/run", { q: question, budget, rounds }),
 
   health: () => api.get("/healthz"),
 };

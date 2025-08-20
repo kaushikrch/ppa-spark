@@ -78,7 +78,7 @@ echo "  UI deployed at: $UI_URL"
 echo "🔧 Configuring API environment..."
 gcloud run services update ppa-api \
   --region=$REGION \
-  --set-env-vars=CORS_ORIGINS=$UI_URL,OPENAI_MODEL=gpt-4o-mini \
+  --set-env-vars=CORS_ORIGINS=$UI_URL,OPENAI_MODEL=gpt-4o \
   --set-secrets=OPENAI_API_KEY=$OPENAI_SECRET:latest,GEMINI_API_KEY=$GEMINI_SECRET:latest
 
 

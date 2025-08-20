@@ -139,11 +139,13 @@ def huddle(question: str, budget: float = 500000):
 def huddle_run(
     q: Optional[str] = Query(None),
     budget: float = Query(500000),
-    body: dict | None = None
+    rounds: int = Query(2),
+    body: dict | None = None,
 ):
     if body:
         q = body.get("q", q)
         budget = float(body.get("budget", budget))
+        rounds = int(body.get("rounds", rounds))
     if not q:
         raise HTTPException(status_code=400, detail="Missing 'q' (question)")
-    return agentic_huddle_v2(q, budget=budget)
+    return agentic_huddle_v2(q, budget=budget, debate_rounds=rounds)
