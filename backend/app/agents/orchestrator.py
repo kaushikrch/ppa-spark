@@ -12,30 +12,45 @@ def _prompt(agent_name: str, question: str, round_label: str, context_blobs: Lis
     user = f"Question: {question}\n\nContext (top tables):\n" + "\n---\n".join(context_blobs[:3]) + "\n\nReturn ONLY JSON."
     return [{"role":"system","content":sys},{"role":"user","content":user}]
 
+
 def _make_fallback_plan(question: str, budget: float) -> Dict[str, Any]:
-    sol, kpis = run_optimizer(spend_budget=float(budget), round=1)
-    top = sorted(sol, key=lambda r: r.get("margin", 0.0), reverse=True)[:5]
-    actions = []
-    for r in top:
-        sid = str(r.get("sku_id", "unknown"))
-        pct = float(r.get("pct_change", 0.0))
-        actions.append({
-            "action_type": "price_change",
-            "target_type": "sku",
-            "ids": [sid],
-            "magnitude_pct": pct,
-            "constraints": ["near-bound ≤10% estate-wide", "respect guardrails"],
-            "expected_impact": {"margin": float(r.get("margin", 0.0))},
-            "risks": ["shopper trust if >8% for Core"],
-            "confidence": 0.6,
-            "evidence_refs": ["TABLE:price_weekly","TABLE:elasticities"]
-        })
+    """Return a conservative plan when agents or optimizer fail.
+
+    Tries to run the optimizer for a data-backed plan but gracefully falls back
+    to an empty placeholder when the optimizer cannot run (e.g. missing tables
+    during deployment smoke tests).
+    """
+    actions: List[Dict[str, Any]] = []
+    plan_name = "Optimizer-backed fallback"
+    rationale = "LLM unavailable or timed out; returning optimizer-backed actions."
+    try:
+        sol, _ = run_optimizer(spend_budget=float(budget), round=1)
+        top = sorted(sol, key=lambda r: r.get("margin", 0.0), reverse=True)[:5]
+        for r in top:
+            sid = str(r.get("sku_id", "unknown"))
+            pct = float(r.get("pct_change", 0.0))
+            actions.append({
+                "action_type": "price_change",
+                "target_type": "sku",
+                "ids": [sid],
+                "magnitude_pct": pct,
+                "constraints": ["near-bound ≤10% estate-wide", "respect guardrails"],
+                "expected_impact": {"margin": float(r.get("margin", 0.0))},
+                "risks": ["shopper trust if >8% for Core"],
+                "confidence": 0.6,
+                "evidence_refs": ["TABLE:price_weekly","TABLE:elasticities"],
+            })
+    except Exception:
+        plan_name = "Optimizer fallback"
+        rationale = "LLM and optimizer unavailable; returning placeholder actions."
+
     return {
-        "plan_name": "Optimizer-backed fallback",
+        "plan_name": plan_name,
         "assumptions": [f"Budget ≤ {budget}", "Round-1 bounds ±20%"],
         "actions": actions,
-        "rationale": "LLM unavailable or timed out; returning optimizer-backed actions."
+        "rationale": rationale,
     }
+
 
 def agentic_huddle_v2(question: str, budget: float = 5e5, debate_rounds: int = 3) -> Dict[str, Any]:
     hits = rag.query(question, topk=4)

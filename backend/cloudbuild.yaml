@@ -1,5 +1,13 @@
 steps:
+- name: 'python:3.11'
+  entrypoint: 'bash'
+  args:
+    - -c
+    - |
+        pip install --no-cache-dir -r requirements.txt pytest
+        pytest tests
 - name: 'gcr.io/cloud-builders/docker'
   args: ['build','-t','$_REGION-docker.pkg.dev/$PROJECT_ID/$_REPO/ppa-api:latest','.']
 images:
 - '$_REGION-docker.pkg.dev/$PROJECT_ID/$_REPO/ppa-api:latest'
+
