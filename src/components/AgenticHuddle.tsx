@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import axios from "axios";
 import api, { API_BASE } from "../lib/api";
 import { Card } from "./ui/card";
@@ -60,6 +60,12 @@ export default function AgenticHuddle() {
   const [demoReady, setDemoReady] = useState(false);
   // When a prompt tile triggers the huddle we auto-run a demo on failure
   const [runDemoOnFail, setRunDemoOnFail] = useState(false);
+  const [progress, setProgress] = useState<string[]>([]);
+  const progressMessages = [
+    "Pricing Analyst is evaluating pricing scenarios...",
+    "Demand Planner is assessing demand and supply...",
+    "Finance is reviewing budget impact...",
+  ];
 
   const start = async () => {
     setLoading(true);
@@ -74,7 +80,7 @@ export default function AgenticHuddle() {
         url,
         { q, budget },
         {
-          timeout: 60000,
+          timeout: 300000,
           headers: { "Content-Type": "application/json" },
         }
       );
@@ -86,7 +92,7 @@ export default function AgenticHuddle() {
         // Fallback: legacy endpoint with query params
         const r2 = await api.post(legacyUrl, null, {
           params: { question: q, budget },
-          timeout: 60000,
+          timeout: 300000,
         });
         console.log("[Huddle] Legacy response:", r2.data);
         setResp(r2.data);
@@ -120,8 +126,25 @@ export default function AgenticHuddle() {
     } finally {
       setLoading(false);
       setRunDemoOnFail(false);
+      setProgress([]);
     }
   };
+
+  useEffect(() => {
+    if (!loading) return;
+    setProgress([]);
+    let step = 0;
+    const interval = setInterval(() => {
+      setProgress(prev => {
+        if (step < progressMessages.length) {
+          return [...prev, progressMessages[step++]];
+        }
+        clearInterval(interval);
+        return prev;
+      });
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [loading]);
 
   const ping = async () => {
     try {
@@ -285,10 +308,15 @@ export default function AgenticHuddle() {
       )}
 
       {loading && (
-        <Card className="p-6 text-center bg-background/50 border">
-          <div className="animate-pulse text-sm text-muted-foreground">
+        <Card className="p-6 bg-background/50 border">
+          <div className="animate-pulse text-sm text-muted-foreground mb-2">
             Agents are collaborating...
           </div>
+          <ul className="text-xs text-foreground list-disc list-inside space-y-1">
+            {progress.map((p, i) => (
+              <li key={i}>{p}</li>
+            ))}
+          </ul>
         </Card>
       )}
 

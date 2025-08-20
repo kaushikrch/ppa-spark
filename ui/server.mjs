@@ -32,8 +32,8 @@ app.use(
     changeOrigin: true,
     xfwd: true,
     pathRewrite: { "^/api": "" },
-    proxyTimeout: 60000,
-    timeout: 60000,
+    proxyTimeout: 300000,
+    timeout: 300000,
     onError(err, req, res) {
       console.error("Proxy error:", err?.message);
       res.status(502).json({ error: "proxy_error", detail: err?.message || "unknown" });
