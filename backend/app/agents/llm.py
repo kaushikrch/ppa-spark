@@ -29,7 +29,7 @@ def _openai_chat_json(messages, temperature, top_p, model):
     if not client:
         raise RuntimeError("openai_key_missing")
     resp = client.chat.completions.create(
-        model=model or os.getenv("OPENAI_MODEL","gpt-4o-mini"),
+        model=model or os.getenv("OPENAI_MODEL","gpt-4o"),
         temperature=temperature, top_p=top_p,
         response_format={"type": "json_object"},
         messages=messages, timeout=45
@@ -51,9 +51,21 @@ def _gemini_chat_json(messages, temperature, top_p):
     r = genai.GenerativeModel(model_name).generate_content(prompt, request_options={"timeout":45})
     text = (r.text or "{}").strip()
     # try to locate JSON substring if extra tokens appear
-    start = text.find("{"); end = text.rfind("}")
-    if start!=-1 and end!=-1 and end>start:
-        text = text[start:end+1]
+    start = text.find("{")
+    if start != -1:
+        depth = 0
+        end = None
+        for i in range(start, len(text)):
+            ch = text[i]
+            if ch == "{":
+                depth += 1
+            elif ch == "}":
+                depth -= 1
+                if depth == 0:
+                    end = i + 1
+                    break
+        if end:
+            text = text[start:end]
     return json.loads(text)
 
 def chat_json(messages: List[Dict[str, str]], temperature=0.4, top_p=0.9, model: str = None) -> Dict[str, Any]:
