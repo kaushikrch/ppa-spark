@@ -338,25 +338,71 @@ export default function AgenticHuddle() {
                   {t.role} • Round {t.round}
                 </div>
                 {t.plan && (
-                  <div className="bg-background rounded-lg p-3 mb-2">
-                    <div className="text-sm font-medium text-foreground mb-1">
+                  <div className="bg-background rounded-lg p-3 mb-2 space-y-2">
+                    <div className="text-sm font-medium text-foreground">
                       Plan: {t.plan.plan_name || "Unnamed Plan"}
                     </div>
-                    <pre className="text-xs text-muted-foreground whitespace-pre-wrap font-mono">
-                      {JSON.stringify(t.plan, null, 2)}
-                    </pre>
+                    {t.plan.actions && t.plan.actions.length > 0 && (
+                      <div className="overflow-x-auto">
+                        <table className="min-w-full text-xs">
+                          <thead className="text-muted-foreground">
+                            <tr>
+                              <th className="p-2 text-left">Action</th>
+                              <th className="p-2 text-left">Targets</th>
+                              <th className="p-2 text-left">Δ%</th>
+                              <th className="p-2 text-left">Impact (U/Rev/Mgn)</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {t.plan.actions.map((a, i) => (
+                              <tr key={i} className="border-t">
+                                <td className="p-2">{a.action_type}</td>
+                                <td className="p-2">{a.ids?.join(', ')}</td>
+                                <td className="p-2">
+                                  {a.magnitude_pct !== undefined
+                                    ? `${(a.magnitude_pct * 100).toFixed(2)}%`
+                                    : '-'}
+                                </td>
+                                <td className="p-2">
+                                  {a.expected_impact
+                                    ? `${a.expected_impact.units ?? '-'} / ${a.expected_impact.revenue ?? '-'} / ${a.expected_impact.margin ?? '-'}`
+                                    : '-'}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                    {t.plan.rationale && (
+                      <div className="text-xs text-muted-foreground">
+                        {t.plan.rationale}
+                      </div>
+                    )}
                   </div>
                 )}
                 {t.kpis && (
                   <div className="text-xs mt-2 p-2 bg-primary/5 rounded">
-                    <span className="font-medium text-primary">KPIs:</span>{" "}
-                    <span className="text-foreground">{JSON.stringify(t.kpis)}</span>
+                    <span className="font-medium text-primary">KPIs:</span>
+                    <ul className="list-disc pl-4 mt-1">
+                      {Object.entries(t.kpis).map(([k, v]) => (
+                        <li key={k} className="text-foreground">
+                          {k}: {String(v)}
+                        </li>
+                      ))}
+                    </ul>
                   </div>
                 )}
-                {t.risks && (
+                {t.risks && t.risks.length > 0 && (
                   <div className="text-xs mt-2 p-2 bg-destructive/5 rounded">
-                    <span className="font-medium text-destructive">Risks:</span>{" "}
-                    <span className="text-foreground">{JSON.stringify(t.risks)}</span>
+                    <span className="font-medium text-destructive">Risks:</span>
+                    <ul className="list-disc pl-4 mt-1">
+                      {t.risks.map((r, i) => (
+                        <li key={i} className="text-foreground">
+                          {r}
+                        </li>
+                      ))}
+                    </ul>
                   </div>
                 )}
               </div>
