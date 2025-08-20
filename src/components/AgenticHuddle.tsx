@@ -51,46 +51,72 @@ export default function AgenticHuddle() {
   const [loading, setLoading] = useState(false);
   const [resp, setResp] = useState<HuddleResponse | null>(null);
   const [error, setError] = useState<string>("");
-  const [apiOverride, setApiOverride] = useState<string>(localStorage.getItem('API_BASE_OVERRIDE') || "");
+  const [apiOverride, setApiOverride] = useState<string>(
+    localStorage.getItem("API_BASE_OVERRIDE") || ""
+  );
   const [demoReady, setDemoReady] = useState(false);
+  // When a prompt tile triggers the huddle we auto-run a demo on failure
+  const [runDemoOnFail, setRunDemoOnFail] = useState(false);
 
   const start = async () => {
-    setLoading(true); setError(""); setResp(null);
-    console.log('[Huddle] Starting with:', { q, budget, API_BASE });
+    setLoading(true);
+    setError("");
+    setResp(null);
+    console.log("[Huddle] Starting with:", { q, budget, API_BASE });
     const url = `${API_BASE}/huddle/run`;
     const legacyUrl = `${API_BASE}/agents/huddle`;
     try {
       // Preferred: JSON body to /huddle/run
-      const r = await axios.post(url, { q, budget }, {
-        timeout: 60000,
-        headers: { 'Content-Type': 'application/json' }
-      });
-      console.log('[Huddle] Response received:', r.data);
+      const r = await axios.post(
+        url,
+        { q, budget },
+        {
+          timeout: 60000,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+      console.log("[Huddle] Response received:", r.data);
       setResp(r.data);
     } catch (e1: unknown) {
-      console.warn('[Huddle] Primary endpoint failed, trying legacy...', e1);
+      console.warn("[Huddle] Primary endpoint failed, trying legacy...", e1);
       try {
         // Fallback: legacy endpoint with query params
-        const r2 = await axios.post(legacyUrl, null, { params: { question: q, budget }, timeout: 60000 });
-        console.log('[Huddle] Legacy response:', r2.data);
+        const r2 = await axios.post(legacyUrl, null, {
+          params: { question: q, budget },
+          timeout: 60000,
+        });
+        console.log("[Huddle] Legacy response:", r2.data);
         setResp(r2.data);
       } catch (e2: unknown) {
-        console.error('[Huddle] Both endpoints failed', { primary: e1, legacy: e2 });
+        console.error("[Huddle] Both endpoints failed", {
+          primary: e1,
+          legacy: e2,
+        });
         let status: number | undefined;
-        let msg = 'Failed to run huddle';
+        let msg = "Failed to run huddle";
         if (axios.isAxiosError(e2)) {
           status = e2.response?.status;
-          const data = e2.response?.data as { detail?: string; message?: string } | undefined;
+          const data = e2.response?.data as {
+            detail?: string;
+            message?: string;
+          } | undefined;
           msg = data?.detail || data?.message || e2.message;
         } else if (axios.isAxiosError(e1)) {
           status = e1.response?.status;
           msg = e1.message;
         }
-        setError(status ? `${status}: ${msg}` : msg);
-        setDemoReady(true);
+        const errMsg = status ? `${status}: ${msg}` : msg;
+        if (runDemoOnFail) {
+          runDemo(false);
+          setError(`${errMsg} — showing demo results`);
+        } else {
+          setError(errMsg);
+          setDemoReady(true);
+        }
       }
     } finally {
       setLoading(false);
+      setRunDemoOnFail(false);
     }
   };
 
@@ -104,7 +130,7 @@ export default function AgenticHuddle() {
   };
 
   // Offline/demo fallback when API is unreachable
-  const runDemo = () => {
+  const runDemo = (clearError: boolean = true) => {
     const now = new Date().toISOString();
     const demo: HuddleResponse = {
       transcript: [
@@ -142,11 +168,12 @@ export default function AgenticHuddle() {
       citations: ['RAG: Elasticity matrix v1.2', 'RAG: Promo playbook FY25']
     };
     setResp(demo);
-    setError('');
+    if (clearError) setError("");
   };
 
   const handleTileClick = (question: string) => {
     setQ(question);
+    setRunDemoOnFail(true);
     // Auto-start huddle when tile is clicked
     setTimeout(() => {
       start();
@@ -232,6 +259,14 @@ export default function AgenticHuddle() {
           {demoReady && (
             <button onClick={runDemo} className="px-3 py-2 rounded-md bg-primary text-primary-foreground w-fit">Run Demo Huddle</button>
           )}
+        </Card>
+      )}
+
+      {loading && (
+        <Card className="p-6 text-center bg-background/50 border">
+          <div className="animate-pulse text-sm text-muted-foreground">
+            Agents are collaborating...
+          </div>
         </Card>
       )}
 
