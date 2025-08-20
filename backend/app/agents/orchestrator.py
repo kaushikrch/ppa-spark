@@ -52,7 +52,11 @@ def _make_fallback_plan(question: str, budget: float) -> Dict[str, Any]:
     }
 
 
-def agentic_huddle_v2(question: str, budget: float = 5e5, debate_rounds: int = 3) -> Dict[str, Any]:
+def agentic_huddle_v2(
+    question: str,
+    budget: float = 5e5,
+    debate_rounds: int = 2,
+) -> Dict[str, Any]:
     hits = rag.query(question, topk=4)
     context = [h["text"] for h in hits]
     transcript: List[Dict[str, Any]] = []
@@ -95,31 +99,61 @@ def agentic_huddle_v2(question: str, budget: float = 5e5, debate_rounds: int = 3
         except Exception as e:
             error_msg = (error_msg or "") + f"[optimizer_probe:{e}] "
 
+        if debate_rounds < 3:
+            pool = scored
+            best_idx = pick_best([s["plan"] for s in pool]) if pool else -1
+            final_plan = pool[best_idx]["plan"] if best_idx >= 0 else _make_fallback_plan(question, budget)
+            return HuddleResponse(
+                stopped_after_rounds=debate_rounds,
+                transcript=transcript,
+                final=PlanJSON(**final_plan)
+                if isinstance(final_plan, dict)
+                else PlanJSON.model_validate(final_plan),
+                citations=[
+                    {"table": h["table"], "score": h["score"], "snippet": h["text"][:500]}
+                    for h in hits
+                ],
+                error=error_msg,
+            ).model_dump()
+
         # Round 2 refine
         refined = []
         for s in scored[:2]:
-            name = s["agent"]; p = AGENT_PERSONAS[name]
+            name = s["agent"]
+            p = AGENT_PERSONAS[name]
             out = chat_json(
-                _prompt(name, question + f"\n\nObserved KPIs: {s['kpis']}\nDiagnostics:{s['diag']}\nBudget: {budget}\nImprove risk-adjusted margin and feasibility.", "R2", context),
-                temperature=p["temperature"], top_p=p["top_p"]
+                _prompt(
+                    name,
+                    question
+                    + f"\n\nObserved KPIs: {s['kpis']}\nDiagnostics:{s['diag']}\nBudget: {budget}\nImprove risk-adjusted margin and feasibility.",
+                    "R2",
+                    context,
+                ),
+                temperature=p["temperature"],
+                top_p=p["top_p"],
             )
             if "__error__" in out:
                 error_msg = (error_msg or "") + f"[{name}_refine:{out['__error__']}] "
             elif out:
                 rkpis, rdiag = evaluate_plan(out)
                 refined.append({"agent": name, "plan": out, "kpis": rkpis, "diag": rdiag})
-            transcript.append({"role":name, "round":"R2","content":"refined", "plan": out})
+            transcript.append({"role": name, "round": "R2", "content": "refined", "plan": out})
 
         pool = refined if refined else scored
         best_idx = pick_best([p["plan"] for p in pool]) if pool else -1
         final_plan = pool[best_idx]["plan"] if best_idx >= 0 else _make_fallback_plan(question, budget)
 
         return HuddleResponse(
-            stopped_after_rounds=3,
+            stopped_after_rounds=debate_rounds,
             transcript=transcript,
-            final=PlanJSON(**final_plan) if isinstance(final_plan, dict) else PlanJSON.model_validate(final_plan),
-            citations=[{"table":h["table"], "score":h["score"], "snippet":h["text"][:500]} for h in hits],
-            error=error_msg
+            final=PlanJSON(**final_plan)
+            if isinstance(final_plan, dict)
+            else PlanJSON.model_validate(final_plan),
+            citations=[
+                {"table": h["table"], "score": h["score"], "snippet": h["text"][:500]}
+                for h in hits
+            ],
+            error=error_msg,
         ).model_dump()
 
     except Exception as e:

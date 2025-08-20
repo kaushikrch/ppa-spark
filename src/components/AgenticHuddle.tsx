@@ -61,11 +61,23 @@ export default function AgenticHuddle() {
   // When a prompt tile triggers the huddle we auto-run a demo on failure
   const [runDemoOnFail, setRunDemoOnFail] = useState(false);
   const [progress, setProgress] = useState<string[]>([]);
-  const progressMessages = [
-    "Pricing Analyst is evaluating pricing scenarios...",
-    "Demand Planner is assessing demand and supply...",
-    "Finance is reviewing budget impact...",
-  ];
+  const [progressMessages, setProgressMessages] = useState<string[]>([
+    "Agents are collaborating...",
+  ]);
+
+  const DEBATE_ROUNDS = Number(import.meta.env.VITE_DEBATE_ROUNDS) || 2;
+
+  const getProgressMessages = (question: string): string[] => {
+    const lower = question.toLowerCase();
+    const msgs = ["Agents are collaborating..."];
+    if (lower.includes("price"))
+      msgs.push("Pricing Analyst is evaluating pricing scenarios...");
+    if (lower.includes("demand") || lower.includes("supply"))
+      msgs.push("Demand Planner is assessing demand and supply...");
+    if (lower.includes("budget") || lower.includes("finance") || lower.includes("margin"))
+      msgs.push("Finance is reviewing budget impact...");
+    return msgs;
+  };
 
   const start = async () => {
     setLoading(true);
@@ -74,18 +86,19 @@ export default function AgenticHuddle() {
     console.log("[Huddle] Starting with:", { q, budget, API_BASE });
     const url = `/huddle/run`;
     const legacyUrl = `/agents/huddle`;
+    setProgressMessages(getProgressMessages(q));
     try {
       const result = await Promise.any([
         api.post(
           url,
-          { q, budget },
+          { q, budget, rounds: DEBATE_ROUNDS },
           {
             timeout: REQUEST_TIMEOUT_MS,
             headers: { "Content-Type": "application/json" },
           }
         ),
         api.post(legacyUrl, null, {
-          params: { question: q, budget },
+          params: { question: q, budget, rounds: DEBATE_ROUNDS },
           timeout: REQUEST_TIMEOUT_MS,
         }),
       ]);
@@ -131,9 +144,9 @@ export default function AgenticHuddle() {
         ...prev,
         progressMessages[step++ % progressMessages.length],
       ]);
-    }, 5000);
+    }, 3000);
     return () => clearInterval(interval);
-  }, [loading]);
+  }, [loading, progressMessages]);
 
   const ping = async () => {
     try {

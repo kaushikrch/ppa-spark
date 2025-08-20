@@ -7,7 +7,7 @@ const app = express();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const DIST = path.join(__dirname, "dist");
-const REQUEST_TIMEOUT_MS = Number(process.env.REQUEST_TIMEOUT_MS) || 300000;
+const REQUEST_TIMEOUT_MS = Number(process.env.REQUEST_TIMEOUT_MS) || 120000;
 
 // API_URL must be the Cloud Run URL of the FastAPI service (no trailing slash)
 const API_URL = process.env.API_URL;
