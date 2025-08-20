@@ -5,23 +5,30 @@ import httpx
 
 from ..utils.secrets import get_gemini_api_key, get_openai_api_key
 
-_OPENAI_API_KEY = get_openai_api_key()
-# Try OpenAI first
-OPENAI_OK = bool(_OPENAI_API_KEY)
-_GEMINI_API_KEY = get_gemini_api_key()
-GEMINI_OK = bool(_GEMINI_API_KEY)
+# Lazily constructed OpenAI client so secret lookup/network I/O doesn't
+# block module import or application startup.
+_oai_client: "OpenAI | None" = None
 
-_oai = None
-if OPENAI_OK:
-    from openai import OpenAI
-    # httpx>=0.28 removed the ``proxies`` kwarg used by the OpenAI client
-    # when auto-detecting proxy settings. Construct a client ourselves so
-    # the SDK doesn't try to pass the deprecated argument.
-    _http_client = httpx.Client(follow_redirects=True, timeout=60, trust_env=False)
-    _oai = OpenAI(api_key=_OPENAI_API_KEY, http_client=_http_client)
+
+def _get_openai_client():
+    global _oai_client
+    if _oai_client is None:
+        key = get_openai_api_key()
+        if not key:
+            return None
+        from openai import OpenAI
+        # httpx>=0.28 removed the ``proxies`` kwarg used by the OpenAI client
+        # when auto-detecting proxy settings. Construct a client ourselves so
+        # the SDK doesn't try to pass the deprecated argument.
+        _http_client = httpx.Client(follow_redirects=True, timeout=60, trust_env=False)
+        _oai_client = OpenAI(api_key=key, http_client=_http_client)
+    return _oai_client
 
 def _openai_chat_json(messages, temperature, top_p, model):
-    resp = _oai.chat.completions.create(
+    client = _get_openai_client()
+    if not client:
+        raise RuntimeError("openai_key_missing")
+    resp = client.chat.completions.create(
         model=model or os.getenv("OPENAI_MODEL","gpt-4o-mini"),
         temperature=temperature, top_p=top_p,
         response_format={"type": "json_object"},
@@ -31,8 +38,11 @@ def _openai_chat_json(messages, temperature, top_p, model):
     return json.loads(content)
 
 def _gemini_chat_json(messages, temperature, top_p):
+    key = get_gemini_api_key()
+    if not key:
+        raise RuntimeError("gemini_key_missing")
     import google.generativeai as genai
-    genai.configure(api_key=_GEMINI_API_KEY)
+    genai.configure(api_key=key)
     # Concatenate messages to a single prompt; ask for pure JSON
     sys = "\n".join(m["content"] for m in messages if m["role"]=="system")
     usr = "\n".join(m["content"] for m in messages if m["role"]=="user")
@@ -48,17 +58,16 @@ def _gemini_chat_json(messages, temperature, top_p):
 
 def chat_json(messages: List[Dict[str, str]], temperature=0.4, top_p=0.9, model: str = None) -> Dict[str, Any]:
     last_err = None
-    # Try OpenAI with 2 retries
-    if OPENAI_OK:
+    # Try OpenAI with 2 retries if a key/client is available
+    if _get_openai_client():
         for attempt in range(2):
             try:
                 return _openai_chat_json(messages, temperature, top_p, model)
             except Exception as e:
                 last_err = f"openai:{e}"; time.sleep(1.5 ** attempt)
     # Fallback to Gemini (1 try)
-    if GEMINI_OK:
-        try:
-            return _gemini_chat_json(messages, temperature, top_p)
-        except Exception as e:
-            last_err = (last_err or "") + f"|gemini:{e}"
+    try:
+        return _gemini_chat_json(messages, temperature, top_p)
+    except Exception as e:
+        last_err = (last_err or "") + f"|gemini:{e}"
     return {"__error__": last_err or "llm_call_failed"}
