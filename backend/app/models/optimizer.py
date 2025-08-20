@@ -1,7 +1,19 @@
+import os
 import pandas as pd
 import numpy as np
 try:
-    from pulp import LpProblem, LpVariable, LpBinary, LpStatus, LpMinimize, LpMaximize, lpSum, LpContinuous, value
+    from pulp import (
+        LpProblem,
+        LpVariable,
+        LpBinary,
+        LpStatus,
+        LpMinimize,
+        LpMaximize,
+        lpSum,
+        LpContinuous,
+        value,
+        PULP_CBC_CMD,
+    )
     PULP_AVAILABLE = True
 except ImportError:
     PULP_AVAILABLE = False
@@ -28,8 +40,19 @@ def run_optimizer(max_pct_change_round1=0.20, max_pct_change_round2=0.40, spend_
     base = demand[demand.week>=demand.week.max()-8]\
         .groupby("sku_id").units.mean().rename("base_units").reset_index()
     p = recent.groupby("sku_id").net_price.mean().rename("p0").reset_index()
-    df = p.merge(base, on="sku_id").merge(costs, on="sku_id").merge(guard, on="sku_id").merge(elast, on="sku_id", how="left")
+    df = (
+        p.merge(base, on="sku_id")
+        .merge(costs, on="sku_id")
+        .merge(guard, on="sku_id")
+        .merge(elast, on="sku_id", how="left")
+    )
     df["own_elast"].fillna(-1.0, inplace=True)
+
+    max_skus = int(os.getenv("OPTIMIZER_MAX_SKUS", "200"))
+    if len(df) > max_skus:
+        df["rev0"] = df["p0"] * df["base_units"]
+        df = df.sort_values("rev0", ascending=False).head(max_skus).reset_index(drop=True)
+        df.drop(columns=["rev0"], inplace=True)
 
     N = len(df)
     M = LpProblem("ppa_opt", LpMaximize)
@@ -83,7 +106,10 @@ def run_optimizer(max_pct_change_round1=0.20, max_pct_change_round2=0.40, spend_
 
     M += profit - reg
 
-    M.solve()
+    solver = PULP_CBC_CMD(
+        msg=False, timeLimit=int(os.getenv("OPTIMIZER_TIME_LIMIT", "300"))
+    )
+    M.solve(solver)
 
     sol = df.copy()
     sol["pct_change"] = [value(x[i]) for i in x]
@@ -107,12 +133,28 @@ def _heuristic_optimizer(max_change=0.20):
     demand = pd.read_sql("select * from demand_weekly", con)
     costs = pd.read_sql("select * from costs", con)
     elast = pd.read_sql("select * from elasticities", con)
-    
-    recent = price[price.week>=price.week.max()-8]
-    base = demand[demand.week>=demand.week.max()-8].groupby("sku_id").units.mean().rename("base_units").reset_index()
+
+    recent = price[price.week >= price.week.max() - 8]
+    base = (
+        demand[demand.week >= demand.week.max() - 8]
+        .groupby("sku_id")
+        .units.mean()
+        .rename("base_units")
+        .reset_index()
+    )
     p = recent.groupby("sku_id").net_price.mean().rename("p0").reset_index()
-    df = p.merge(base, on="sku_id").merge(costs, on="sku_id").merge(elast, on="sku_id", how="left")
+    df = (
+        p.merge(base, on="sku_id")
+        .merge(costs, on="sku_id")
+        .merge(elast, on="sku_id", how="left")
+    )
     df["own_elast"].fillna(-1.0, inplace=True)
+
+    max_skus = int(os.getenv("OPTIMIZER_MAX_SKUS", "200"))
+    if len(df) > max_skus:
+        df["rev0"] = df["p0"] * df["base_units"]
+        df = df.sort_values("rev0", ascending=False).head(max_skus).reset_index(drop=True)
+        df.drop(columns=["rev0"], inplace=True)
     
     # Simple heuristic: increase price where elasticity is low (less elastic)
     df["pct_change"] = np.where(df["own_elast"] > -0.8, max_change * 0.5, 
