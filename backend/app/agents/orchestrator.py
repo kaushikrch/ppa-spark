@@ -55,8 +55,9 @@ def _make_fallback_plan(question: str, budget: float) -> Dict[str, Any]:
 def agentic_huddle_v2(
     question: str,
     budget: float = 5e5,
-    debate_rounds: int = 2,
+    debate_rounds: int = 3,
 ) -> Dict[str, Any]:
+    debate_rounds = min(debate_rounds, 3)
     hits = rag.query(question, topk=4)
     context = [h["text"] for h in hits]
     transcript: List[Dict[str, Any]] = []

@@ -65,7 +65,11 @@ export default function AgenticHuddle() {
     "Agents are collaborating...",
   ]);
 
-  const DEBATE_ROUNDS = Number(import.meta.env.VITE_DEBATE_ROUNDS) || 2;
+  // Cap debate rounds at 3 to avoid infinite collaboration
+  const DEBATE_ROUNDS = Math.min(
+    Number(import.meta.env.VITE_DEBATE_ROUNDS) || 3,
+    3
+  );
 
   const getProgressMessages = (question: string): string[] => {
     const lower = question.toLowerCase();

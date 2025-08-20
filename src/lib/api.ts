@@ -91,7 +91,7 @@ export const apiService = {
   ): Promise<{data: {insight: string}}> =>
     api.post("/genai/insight", { panel_id: panelId, q, data }),
 
-  agenticHuddle: (question: string, budget?: number, rounds: number = 2) =>
+  agenticHuddle: (question: string, budget?: number, rounds: number = 3) =>
     api.post("/huddle/run", { q: question, budget, rounds }),
 
   health: () => api.get("/healthz"),
