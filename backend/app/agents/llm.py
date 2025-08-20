@@ -15,7 +15,7 @@ def _gemini_chat_json(messages, temperature, top_p, model=None):
     sys = "\n".join(m["content"] for m in messages if m["role"] == "system")
     usr = "\n".join(m["content"] for m in messages if m["role"] == "user")
     prompt = f"{sys}\n\n{usr}\n\nReturn ONLY valid JSON."
-    model_name = model or os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
+    model_name = model or os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
     r = genai.GenerativeModel(model_name).generate_content(
         prompt, request_options={"timeout": 600}
     )
