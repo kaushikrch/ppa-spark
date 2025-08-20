@@ -1,18 +1,20 @@
 import React from 'react';
 import { Card } from './ui/card';
 import { TrendingUp, TrendingDown, DollarSign, Package, Target, Zap } from 'lucide-react';
+import { calculateTrend, formatChange } from '../lib/kpi';
 
 interface KPICardProps {
   title: string;
-  value: string;
-  change: string;
-  trend: 'up' | 'down' | 'neutral';
+  current: number;
+  previous: number;
+  formatter: (value: number) => string;
   icon: React.ReactNode;
 }
 
-const KPICard: React.FC<KPICardProps> = ({ title, value, change, trend, icon }) => {
+const KPICard: React.FC<KPICardProps> = ({ title, current, previous, formatter, icon }) => {
+  const { change, trend } = calculateTrend(current, previous);
   const trendColor = trend === 'up' ? 'text-success' : trend === 'down' ? 'text-destructive' : 'text-muted-foreground';
-  const TrendIcon = trend === 'up' ? TrendingUp : TrendingDown;
+  const TrendIcon = trend === 'down' ? TrendingDown : TrendingUp;
 
   return (
     <Card className="p-6 bg-gradient-secondary border-0 shadow-elegant hover:shadow-purple transition-all duration-300">
@@ -23,12 +25,12 @@ const KPICard: React.FC<KPICardProps> = ({ title, value, change, trend, icon }) 
           </div>
           <div>
             <p className="text-sm font-medium text-muted-foreground">{title}</p>
-            <p className="text-2xl font-bold text-foreground">{value}</p>
+            <p className="text-2xl font-bold text-foreground">{formatter(current)}</p>
           </div>
         </div>
         <div className={`flex items-center space-x-1 ${trendColor}`}>
           <TrendIcon className="h-4 w-4" />
-          <span className="text-sm font-medium">{change}</span>
+          <span className="text-sm font-medium">{formatChange(change)}</span>
         </div>
       </div>
     </Card>
@@ -46,13 +48,14 @@ interface KPICardsProps {
 }
 
 const KPICards: React.FC<KPICardsProps> = ({ data }) => {
-  const kpis = data || {
+  const baseline = {
     revenue: 12500000,
     volume: 850000,
     margin: 3250000,
     gm_percent: 26.8,
     spend: 950000
   };
+  const kpis = data || baseline;
 
   const formatCurrency = (value: number) => `₹${(value / 1000000).toFixed(1)}M`;
   const formatUnits = (value: number) => `${(value / 1000).toFixed(0)}K`;
@@ -62,37 +65,37 @@ const KPICards: React.FC<KPICardsProps> = ({ data }) => {
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
       <KPICard
         title="Revenue"
-        value={formatCurrency(kpis.revenue)}
-        change="+4.2%"
-        trend="up"
+        current={kpis.revenue}
+        previous={baseline.revenue}
+        formatter={formatCurrency}
         icon={<DollarSign className="h-5 w-5" />}
       />
       <KPICard
         title="Volume"
-        value={formatUnits(kpis.volume)}
-        change="-1.8%"
-        trend="down"
+        current={kpis.volume}
+        previous={baseline.volume}
+        formatter={formatUnits}
         icon={<Package className="h-5 w-5" />}
       />
       <KPICard
         title="Margin"
-        value={formatCurrency(kpis.margin)}
-        change="+7.3%"
-        trend="up"
+        current={kpis.margin}
+        previous={baseline.margin}
+        formatter={formatCurrency}
         icon={<Target className="h-5 w-5" />}
       />
       <KPICard
         title="GM%"
-        value={formatPercent(kpis.gm_percent)}
-        change="+2.1%"
-        trend="up"
+        current={kpis.gm_percent}
+        previous={baseline.gm_percent}
+        formatter={formatPercent}
         icon={<TrendingUp className="h-5 w-5" />}
       />
       <KPICard
         title="Trade Spend"
-        value={formatCurrency(kpis.spend)}
-        change="-5.4%"
-        trend="down"
+        current={kpis.spend}
+        previous={baseline.spend}
+        formatter={formatCurrency}
         icon={<Zap className="h-5 w-5" />}
       />
     </div>
