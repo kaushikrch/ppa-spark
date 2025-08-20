@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import api, { API_BASE } from "../lib/api";
+import api, { API_BASE, REQUEST_TIMEOUT_MS } from "../lib/api";
 import { Card } from "./ui/card";
 import PromptTiles from "./PromptTiles";
 
@@ -61,11 +61,23 @@ export default function AgenticHuddle() {
   // When a prompt tile triggers the huddle we auto-run a demo on failure
   const [runDemoOnFail, setRunDemoOnFail] = useState(false);
   const [progress, setProgress] = useState<string[]>([]);
-  const progressMessages = [
-    "Pricing Analyst is evaluating pricing scenarios...",
-    "Demand Planner is assessing demand and supply...",
-    "Finance is reviewing budget impact...",
-  ];
+  const [progressMessages, setProgressMessages] = useState<string[]>([
+    "Agents are collaborating...",
+  ]);
+
+  const DEBATE_ROUNDS = Number(import.meta.env.VITE_DEBATE_ROUNDS) || 2;
+
+  const getProgressMessages = (question: string): string[] => {
+    const lower = question.toLowerCase();
+    const msgs = ["Agents are collaborating..."];
+    if (lower.includes("price"))
+      msgs.push("Pricing Analyst is evaluating pricing scenarios...");
+    if (lower.includes("demand") || lower.includes("supply"))
+      msgs.push("Demand Planner is assessing demand and supply...");
+    if (lower.includes("budget") || lower.includes("finance") || lower.includes("margin"))
+      msgs.push("Finance is reviewing budget impact...");
+    return msgs;
+  };
 
   const start = async () => {
     setLoading(true);
@@ -74,54 +86,47 @@ export default function AgenticHuddle() {
     console.log("[Huddle] Starting with:", { q, budget, API_BASE });
     const url = `/huddle/run`;
     const legacyUrl = `/agents/huddle`;
+    setProgressMessages(getProgressMessages(q));
     try {
-      // Preferred: JSON body to /huddle/run
-      const r = await api.post(
-        url,
-        { q, budget },
-        {
-          timeout: 300000,
-          headers: { "Content-Type": "application/json" },
-        }
-      );
-      console.log("[Huddle] Response received:", r.data);
-      setResp(r.data);
-    } catch (e1: unknown) {
-      console.warn("[Huddle] Primary endpoint failed, trying legacy...", e1);
-      try {
-        // Fallback: legacy endpoint with query params
-        const r2 = await api.post(legacyUrl, null, {
-          params: { question: q, budget },
-          timeout: 300000,
-        });
-        console.log("[Huddle] Legacy response:", r2.data);
-        setResp(r2.data);
-      } catch (e2: unknown) {
-        console.error("[Huddle] Both endpoints failed", {
-          primary: e1,
-          legacy: e2,
-        });
-        let status: number | undefined;
-        let msg = "Failed to run huddle";
-        if (axios.isAxiosError(e2)) {
-          status = e2.response?.status;
-          const data = e2.response?.data as {
+      const result = await Promise.any([
+        api.post(
+          url,
+          { q, budget, rounds: DEBATE_ROUNDS },
+          {
+            timeout: REQUEST_TIMEOUT_MS,
+            headers: { "Content-Type": "application/json" },
+          }
+        ),
+        api.post(legacyUrl, null, {
+          params: { question: q, budget, rounds: DEBATE_ROUNDS },
+          timeout: REQUEST_TIMEOUT_MS,
+        }),
+      ]);
+      console.log("[Huddle] Response received:", result.data);
+      setResp(result.data);
+    } catch (e: unknown) {
+      console.error("[Huddle] Both endpoints failed", e);
+      const errors = e instanceof AggregateError ? e.errors : [e];
+      let status: number | undefined;
+      let msg = "Failed to run huddle";
+      for (const err of errors) {
+        if (axios.isAxiosError(err)) {
+          status = err.response?.status;
+          const data = err.response?.data as {
             detail?: string;
             message?: string;
           } | undefined;
-          msg = data?.detail || data?.message || e2.message;
-        } else if (axios.isAxiosError(e1)) {
-          status = e1.response?.status;
-          msg = e1.message;
+          msg = data?.detail || data?.message || err.message;
+          break;
         }
-        const errMsg = status ? `${status}: ${msg}` : msg;
-        if (runDemoOnFail) {
-          runDemo(false);
-          setError(`${errMsg} — showing demo results`);
-        } else {
-          setError(errMsg);
-          setDemoReady(true);
-        }
+      }
+      const errMsg = status ? `${status}: ${msg}` : msg;
+      if (runDemoOnFail) {
+        runDemo(false);
+        setError(`${errMsg} — showing demo results`);
+      } else {
+        setError(errMsg);
+        setDemoReady(true);
       }
     } finally {
       setLoading(false);
@@ -135,16 +140,13 @@ export default function AgenticHuddle() {
     setProgress([]);
     let step = 0;
     const interval = setInterval(() => {
-      setProgress(prev => {
-        if (step < progressMessages.length) {
-          return [...prev, progressMessages[step++]];
-        }
-        clearInterval(interval);
-        return prev;
-      });
-    }, 5000);
+      setProgress(prev => [
+        ...prev,
+        progressMessages[step++ % progressMessages.length],
+      ]);
+    }, 3000);
     return () => clearInterval(interval);
-  }, [loading]);
+  }, [loading, progressMessages]);
 
   const ping = async () => {
     try {
