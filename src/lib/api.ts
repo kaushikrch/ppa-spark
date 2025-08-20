@@ -5,10 +5,20 @@ const storedOverride =
   typeof window !== "undefined" ? localStorage.getItem("API_BASE_OVERRIDE") : null;
 export const API_BASE = storedOverride || import.meta.env.VITE_API_BASE || "/api";
 
+// Optional auth token for secured APIs
+const storedToken =
+  typeof window !== "undefined" ? localStorage.getItem("API_TOKEN") : null;
+export const API_TOKEN = storedToken || import.meta.env.VITE_API_TOKEN || "";
+
 const api = axios.create({
   baseURL: API_BASE,
   timeout: 60000,
 });
+
+if (API_TOKEN) {
+  api.defaults.headers.common["Authorization"] = `Bearer ${API_TOKEN}`;
+  axios.defaults.headers.common["Authorization"] = `Bearer ${API_TOKEN}`;
+}
 
 // Types (unchanged)
 export interface KPIData {
