@@ -10,8 +10,27 @@ from .models.optimizer import run_optimizer
 from .rag.store import rag
 from .agents.orchestrator import agentic_huddle, agentic_huddle_v2
 from .utils.secrets import get_gemini_api_key
+from .utils.io import engine
+from sqlalchemy import inspect
+import threading
 
 app = FastAPI(title="iNRM PPA+Assortment API", version="1.0.0")
+
+
+def _bootstrap_data():
+    """Ensure synthetic data and model tables exist for huddle endpoints."""
+    insp = inspect(engine())
+    if not insp.has_table("price_weekly"):
+        gen_weekly_data()
+        insp = inspect(engine())
+    if not (insp.has_table("elasticities") and insp.has_table("attributes_importance")):
+        fit_elasticities()
+
+
+@app.on_event("startup")
+def _startup_thread():
+    # Run bootstrap in background so container starts listening quickly
+    threading.Thread(target=_bootstrap_data, daemon=True).start()
 
 # CORS for frontend (allow specific origins or *)
 CORS_ORIGINS = os.getenv("CORS_ORIGINS", "*")
