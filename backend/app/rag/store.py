@@ -24,7 +24,7 @@ def _get_openai():
     if _OPENAI is None:
         try:
             from openai import OpenAI
-            http_client = httpx.Client(follow_redirects=True, timeout=60, trust_env=False)
+            http_client = httpx.Client(follow_redirects=True, timeout=600, trust_env=False)
             _OPENAI = OpenAI(api_key=get_openai_api_key(), http_client=http_client)
         except Exception:
             _OPENAI = None

@@ -11,7 +11,7 @@ const storedToken =
 export const API_TOKEN = storedToken || import.meta.env.VITE_API_TOKEN || "";
 
 export const REQUEST_TIMEOUT_MS =
-  Number(import.meta.env.VITE_REQUEST_TIMEOUT_MS) || 120000;
+  Number(import.meta.env.VITE_REQUEST_TIMEOUT_MS) || 600000;
 
 const api = axios.create({
   baseURL: API_BASE,
