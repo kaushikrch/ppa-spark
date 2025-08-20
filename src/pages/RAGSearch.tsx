@@ -26,7 +26,7 @@ export default function RAGSearch() {
     try {
       const response = await axios.get(`${API_BASE}/rag/search`, { 
         params: { q, topk: 6 },
-        timeout: 30000
+        timeout: 600000
       });
       setHits(response.data.hits || []);
     } catch (e: unknown) {

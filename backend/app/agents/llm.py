@@ -20,7 +20,7 @@ def _get_openai_client():
         # httpx>=0.28 removed the ``proxies`` kwarg used by the OpenAI client
         # when auto-detecting proxy settings. Construct a client ourselves so
         # the SDK doesn't try to pass the deprecated argument.
-        _http_client = httpx.Client(follow_redirects=True, timeout=60, trust_env=False)
+        _http_client = httpx.Client(follow_redirects=True, timeout=600, trust_env=False)
         _oai_client = OpenAI(api_key=key, http_client=_http_client)
     return _oai_client
 
@@ -32,7 +32,7 @@ def _openai_chat_json(messages, temperature, top_p, model):
         model=model or os.getenv("OPENAI_MODEL","gpt-4o"),
         temperature=temperature, top_p=top_p,
         response_format={"type": "json_object"},
-        messages=messages, timeout=45
+        messages=messages, timeout=600
     )
     content = resp.choices[0].message.content or "{}"
     return json.loads(content)
@@ -48,7 +48,7 @@ def _gemini_chat_json(messages, temperature, top_p):
     usr = "\n".join(m["content"] for m in messages if m["role"]=="user")
     prompt = f"{sys}\n\n{usr}\n\nReturn ONLY valid JSON."
     model_name = os.getenv("GEMINI_MODEL","gemini-1.5-flash")
-    r = genai.GenerativeModel(model_name).generate_content(prompt, request_options={"timeout":45})
+    r = genai.GenerativeModel(model_name).generate_content(prompt, request_options={"timeout":600})
     text = (r.text or "{}").strip()
     # try to locate JSON substring if extra tokens appear
     start = text.find("{")
