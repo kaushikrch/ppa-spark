@@ -26,7 +26,3 @@ def get_gemini_api_key() -> str | None:
     return _fetch_secret("GEMINI_API_KEY", "gemini-api-key", "GEMINI_API_KEY_SECRET")
 
 
-@lru_cache()
-def get_openai_api_key() -> str | None:
-    """Retrieve OpenAI API key from env or Google Secret Manager."""
-    return _fetch_secret("OPENAI_API_KEY", "open-ai-api-key", "OPENAI_API_KEY_SECRET")

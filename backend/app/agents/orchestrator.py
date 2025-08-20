@@ -57,6 +57,7 @@ def agentic_huddle_v2(
     budget: float = 5e5,
     debate_rounds: int = 3,
 ) -> Dict[str, Any]:
+    # Hard cap to 3 rounds of debate to keep deliberation bounded
     debate_rounds = min(debate_rounds, 3)
     hits = rag.query(question, topk=4)
     context = [h["text"] for h in hits]

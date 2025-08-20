@@ -8,7 +8,6 @@ PROJECT_ID=${PROJECT_ID:-$(gcloud config get-value project)}
 REGION=${REGION:-asia-south1}
 REPO=${REPO:-ppa-assortment-repo}
 GEMINI_SECRET=${GEMINI_SECRET:-gemini-api-key}
-OPENAI_SECRET=${OPENAI_SECRET:-open-ai-api-key}
 
 echo "📋 Configuration:"
 echo "  Project ID: $PROJECT_ID"
@@ -74,12 +73,12 @@ gcloud run deploy ppa-ui \
 UI_URL=$(gcloud run services describe ppa-ui --region=$REGION --format='value(status.url)')
 echo "  UI deployed at: $UI_URL"
 
-# Configure CORS and OpenAI env on API
+# Configure CORS and Gemini env on API
 echo "🔧 Configuring API environment..."
 gcloud run services update ppa-api \
   --region=$REGION \
-  --set-env-vars=CORS_ORIGINS=$UI_URL,OPENAI_MODEL=gpt-4o \
-  --set-secrets=OPENAI_API_KEY=$OPENAI_SECRET:latest,GEMINI_API_KEY=$GEMINI_SECRET:latest
+  --set-env-vars=CORS_ORIGINS=$UI_URL \
+  --set-secrets=GEMINI_API_KEY=$GEMINI_SECRET:latest
 
 
 # Smoke tests

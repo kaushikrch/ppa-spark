@@ -6,9 +6,7 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 from ..utils.io import engine
 from ..bootstrap import bootstrap_if_needed
-from ..utils.secrets import get_openai_api_key
-
-import httpx
+from ..utils.secrets import get_gemini_api_key
 
 try:
     import faiss  # optional
@@ -16,34 +14,27 @@ try:
 except Exception:
     FAISS_OK = False
 
-_OPENAI = None
-_DIM = 1536  # text-embedding-3-small
+_DIM = 768  # default dimension for Gemini embeddings
 
-def _get_openai():
-    global _OPENAI
-    if _OPENAI is None:
-        try:
-            from openai import OpenAI
-            http_client = httpx.Client(follow_redirects=True, timeout=600, trust_env=False)
-            _OPENAI = OpenAI(api_key=get_openai_api_key(), http_client=http_client)
-        except Exception:
-            _OPENAI = None
-    return _OPENAI
 
 def _embed_texts(texts: List[str]) -> np.ndarray:
-    """Embed via OpenAI; fallback to zeros if fails."""
+    """Embed via Vertex AI Gemini; fallback to zeros if fails."""
     try:
-        client = _get_openai()
-        if client is None:
-            raise Exception("No OpenAI client")
-        resp = client.embeddings.create(
-            model=os.getenv("OPENAI_EMBED_MODEL", "text-embedding-3-small"),
-            input=texts
-        )
-        vecs = [d.embedding for d in resp.data]
+        key = get_gemini_api_key()
+        if not key:
+            raise Exception("No Gemini API key")
+        import google.generativeai as genai
+        genai.configure(api_key=key)
+        model_name = os.getenv("GEMINI_EMBED_MODEL", "text-embedding-004")
+        vecs = []
+        for t in texts:
+            r = genai.embed_content(model=model_name, content=t)
+            emb = r["embedding"]
+            if isinstance(emb, dict):
+                emb = emb.get("values") or emb.get("embedding") or []
+            vecs.append(emb)
         return np.array(vecs, dtype="float32")
     except Exception:
-        # Fallback to zeros so RAG still works via TF-IDF
         return np.zeros((len(texts), _DIM), dtype="float32")
 
 def _chunk_text(table: str, df: pd.DataFrame, max_lines=400, chunk_char=1800) -> List[Tuple[str, str]]:
@@ -89,8 +80,8 @@ class RAGStore:
         
         self.docs, self.meta = blobs, meta
 
-        # Try FAISS with OpenAI embeddings; fallback to TF-IDF
-        use_dense = bool(get_openai_api_key()) and FAISS_OK
+        # Try FAISS with Gemini embeddings; fallback to TF-IDF
+        use_dense = bool(get_gemini_api_key()) and FAISS_OK
         if use_dense:
             try:
                 vecs = _embed_texts(self.docs)
