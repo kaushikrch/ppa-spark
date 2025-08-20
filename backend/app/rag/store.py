@@ -5,6 +5,7 @@ import pandas as pd
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 from ..utils.io import engine
+from ..bootstrap import bootstrap_if_needed
 from ..utils.secrets import get_openai_api_key
 
 import httpx
@@ -69,8 +70,9 @@ class RAGStore:
     def build(self, tables: List[str] = None):
         if tables is None:
             tables = ["sku_master", "price_weekly", "demand_weekly", "elasticities", "attributes_importance"]
-        
+
         try:
+            bootstrap_if_needed()
             con = engine().connect()
         except Exception:
             return {"docs": 0, "mode": "error", "error": "Database connection failed"}

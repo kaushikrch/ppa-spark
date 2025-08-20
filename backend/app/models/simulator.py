@@ -1,8 +1,10 @@
 import pandas as pd
 import numpy as np
 from ..utils.io import engine
+from ..bootstrap import bootstrap_if_needed
 
 def _load():
+    bootstrap_if_needed()
     con = engine().connect()
     return (
         pd.read_sql("select * from price_weekly", con),

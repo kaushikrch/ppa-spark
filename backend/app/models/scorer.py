@@ -2,9 +2,11 @@ from typing import Dict, List, Tuple, Any
 import pandas as pd
 import numpy as np
 from ..utils.io import engine
+from ..bootstrap import bootstrap_if_needed
 from ..models.simulator import simulate_price_change, simulate_delist
 
 def _latest_price_and_base():
+    bootstrap_if_needed()
     con = engine().connect()
     price = pd.read_sql("select * from price_weekly", con)
     demand = pd.read_sql("select * from demand_weekly", con)

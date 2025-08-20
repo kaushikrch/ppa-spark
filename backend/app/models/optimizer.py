@@ -6,6 +6,7 @@ try:
 except ImportError:
     PULP_AVAILABLE = False
 from ..utils.io import engine
+from ..bootstrap import bootstrap_if_needed
 
 # MILP to maximize margin with guardrails and smoothing (discourage bound-hitting)
 
@@ -14,6 +15,7 @@ def run_optimizer(max_pct_change_round1=0.20, max_pct_change_round2=0.40, spend_
         # Fallback to simple heuristic if PuLP not available
         return _heuristic_optimizer(max_pct_change_round1 if round==1 else max_pct_change_round2)
     
+    bootstrap_if_needed()
     con = engine().connect()
     price = pd.read_sql("select * from price_weekly", con)
     demand = pd.read_sql("select * from demand_weekly", con)
@@ -99,6 +101,7 @@ def run_optimizer(max_pct_change_round1=0.20, max_pct_change_round2=0.40, spend_
 
 def _heuristic_optimizer(max_change=0.20):
     """Simple heuristic fallback when PuLP is not available"""
+    bootstrap_if_needed()
     con = engine().connect()
     price = pd.read_sql("select * from price_weekly", con)
     demand = pd.read_sql("select * from demand_weekly", con)
