@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import axios from "axios";
-import { API_BASE } from "../lib/api";
+import api, { API_BASE } from "../lib/api";
 import { Card } from "./ui/card";
 import PromptTiles from "./PromptTiles";
 
@@ -54,6 +54,9 @@ export default function AgenticHuddle() {
   const [apiOverride, setApiOverride] = useState<string>(
     localStorage.getItem("API_BASE_OVERRIDE") || ""
   );
+  const [apiToken, setApiToken] = useState<string>(
+    localStorage.getItem("API_TOKEN") || ""
+  );
   const [demoReady, setDemoReady] = useState(false);
   // When a prompt tile triggers the huddle we auto-run a demo on failure
   const [runDemoOnFail, setRunDemoOnFail] = useState(false);
@@ -63,11 +66,11 @@ export default function AgenticHuddle() {
     setError("");
     setResp(null);
     console.log("[Huddle] Starting with:", { q, budget, API_BASE });
-    const url = `${API_BASE}/huddle/run`;
-    const legacyUrl = `${API_BASE}/agents/huddle`;
+    const url = `/huddle/run`;
+    const legacyUrl = `/agents/huddle`;
     try {
       // Preferred: JSON body to /huddle/run
-      const r = await axios.post(
+      const r = await api.post(
         url,
         { q, budget },
         {
@@ -81,7 +84,7 @@ export default function AgenticHuddle() {
       console.warn("[Huddle] Primary endpoint failed, trying legacy...", e1);
       try {
         // Fallback: legacy endpoint with query params
-        const r2 = await axios.post(legacyUrl, null, {
+        const r2 = await api.post(legacyUrl, null, {
           params: { question: q, budget },
           timeout: 60000,
         });
@@ -122,7 +125,7 @@ export default function AgenticHuddle() {
 
   const ping = async () => {
     try {
-      const r = await axios.get(`${API_BASE}/healthz`, { timeout: 10000 });
+      const r = await api.get(`/healthz`, { timeout: 10000 });
       alert(`API OK: ${JSON.stringify(r.data)}`);
     } catch (e: unknown) {
       alert(`API not reachable: ${e instanceof Error ? e.message : String(e)}`);
@@ -231,14 +234,33 @@ export default function AgenticHuddle() {
                   value={apiOverride}
                   onChange={e => setApiOverride(e.target.value)}
                 />
+                <input
+                  className="w-full p-2 rounded-md border border-border bg-background text-foreground"
+                  placeholder="Bearer token (optional)"
+                  value={apiToken}
+                  onChange={e => setApiToken(e.target.value)}
+                />
                 <div className="flex gap-2">
                   <button
                     className="px-3 py-2 rounded-md bg-primary text-primary-foreground"
-                    onClick={() => { localStorage.setItem('API_BASE_OVERRIDE', apiOverride); window.location.reload(); }}
+                    onClick={() => {
+                      localStorage.setItem('API_BASE_OVERRIDE', apiOverride);
+                      if (apiToken) {
+                        localStorage.setItem('API_TOKEN', apiToken);
+                      } else {
+                        localStorage.removeItem('API_TOKEN');
+                      }
+                      window.location.reload();
+                    }}
                   >Save & Use</button>
                   <button
                     className="px-3 py-2 rounded-md bg-secondary text-secondary-foreground"
-                    onClick={() => { localStorage.removeItem('API_BASE_OVERRIDE'); localStorage.removeItem('API_BASE_SELECTED'); window.location.reload(); }}
+                    onClick={() => {
+                      localStorage.removeItem('API_BASE_OVERRIDE');
+                      localStorage.removeItem('API_BASE_SELECTED');
+                      localStorage.removeItem('API_TOKEN');
+                      window.location.reload();
+                    }}
                   >Clear</button>
                   <button
                     className="px-3 py-2 rounded-md bg-muted-foreground/20 text-foreground"
