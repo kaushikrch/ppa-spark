@@ -4,6 +4,7 @@ const { createProxyMiddleware } = require("http-proxy-middleware");
 
 const app = express();
 const DIST = path.join(__dirname, "dist");
+const REQUEST_TIMEOUT_MS = Number(process.env.REQUEST_TIMEOUT_MS) || 300000;
 
 // API_URL must be the Cloud Run URL of the FastAPI service (no trailing slash)
 const API_URL = process.env.API_URL;
@@ -19,8 +20,8 @@ app.use(
     changeOrigin: true,
     xfwd: true,
     pathRewrite: { "^/api": "" },
-    proxyTimeout: 300000,
-    timeout: 300000,
+    proxyTimeout: REQUEST_TIMEOUT_MS,
+    timeout: REQUEST_TIMEOUT_MS,
     onError(err, req, res) {
       console.error("Proxy error:", err?.message);
       res.status(502).json({ error: "proxy_error", detail: err?.message || "unknown" });

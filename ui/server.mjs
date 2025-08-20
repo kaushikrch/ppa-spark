@@ -8,6 +8,7 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 const DIST = path.join(__dirname, "dist");
+const REQUEST_TIMEOUT_MS = Number(process.env.REQUEST_TIMEOUT_MS) || 300000;
 
 // Cloud Run URL of FastAPI (no trailing slash), e.g. https://ppa-api-xxxxx.a.run.app
 const API_URL = process.env.API_URL;
@@ -32,8 +33,8 @@ app.use(
     changeOrigin: true,
     xfwd: true,
     pathRewrite: { "^/api": "" },
-    proxyTimeout: 300000,
-    timeout: 300000,
+    proxyTimeout: REQUEST_TIMEOUT_MS,
+    timeout: REQUEST_TIMEOUT_MS,
     onError(err, req, res) {
       console.error("Proxy error:", err?.message);
       res.status(502).json({ error: "proxy_error", detail: err?.message || "unknown" });
