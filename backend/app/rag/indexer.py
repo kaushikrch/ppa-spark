@@ -1,5 +1,6 @@
 import pandas as pd
 from ..utils.io import engine
+from ..bootstrap import bootstrap_if_needed
 try:
     from sklearn.feature_extraction.text import TfidfVectorizer
     from sklearn.metrics.pairwise import cosine_similarity
@@ -16,6 +17,7 @@ class SimpleTableRAG:
     def build(self):
         if not SKLEARN_AVAILABLE:
             return
+        bootstrap_if_needed()
         con = engine().connect()
         tables = ["sku_master","price_weekly","demand_weekly","elasticities","attributes_importance"]
         blobs = []
