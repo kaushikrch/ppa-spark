@@ -99,19 +99,26 @@ def rag_search(q: str, topk: int = 4):
 @app.post("/genai/insight")
 def insight(payload: dict):
     import pandas as pd
-    import google.generativeai as genai
+    import vertexai
+    from vertexai.generative_models import GenerativeModel, GenerationConfig
 
     panel_id = payload.get("panel_id", "unknown")
     q = payload.get("q", "Explain the chart succinctly")
     data = payload.get("data")
 
-    # Configure Gemini
     api_key = get_gemini_api_key()
     if not api_key:
         return {"insight": "Gemini API key not configured."}
 
-    genai.configure(api_key=api_key)
-    model = genai.GenerativeModel('gemini-1.5-flash')
+    project = (
+        os.getenv("PROJECT_ID")
+        or os.getenv("GCP_PROJECT")
+        or os.getenv("GOOGLE_CLOUD_PROJECT")
+        or "dummy-project"
+    )
+    region = os.getenv("GCP_REGION") or os.getenv("REGION") or "us-central1"
+    vertexai.init(project=project, location=region, api_key=api_key)
+    model = GenerativeModel(os.getenv("GEMINI_MODEL", "gemini-2.5-flash"))
 
     if data:
         df = pd.DataFrame(data)
@@ -132,7 +139,7 @@ Data Context:
 Provide a 2-3 sentence insight focusing on key business implications."""
 
     try:
-        response = model.generate_content(prompt)
+        response = model.generate_content(prompt, generation_config=GenerationConfig(temperature=0.4))
         return {"insight": response.text}
     except Exception as e:
         return {"insight": f"Unable to generate insight: {str(e)}"}

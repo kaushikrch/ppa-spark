@@ -32,6 +32,7 @@ This command will:
 - **Pre-Built Prompts**: 8 business-ready prompt tiles for complex decisions
 - **Bounded Debates**: Maximum 3 rounds with automatic consensus generation
 - **Tool Integration**: Agents use optimization, simulation, and RAG tools
+- **Vertex AI Gemini**: Low-latency generation using API key from Google credentials
 
 ### 🔍 **RAG-Powered Insights**
 - **Table Search**: Query across all data tables with semantic similarity

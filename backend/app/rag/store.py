@@ -7,6 +7,8 @@ from sklearn.metrics.pairwise import cosine_similarity
 from ..utils.io import engine
 from ..bootstrap import bootstrap_if_needed
 from ..utils.secrets import get_gemini_api_key
+import vertexai
+from vertexai.language_models import TextEmbeddingModel
 
 try:
     import faiss  # optional
@@ -15,24 +17,29 @@ except Exception:
     FAISS_OK = False
 
 _DIM = 768  # default dimension for Gemini embeddings
+_EMBED_MODEL: TextEmbeddingModel | None = None
 
 
 def _embed_texts(texts: List[str]) -> np.ndarray:
     """Embed via Vertex AI Gemini; fallback to zeros if fails."""
+    global _EMBED_MODEL
     try:
         key = get_gemini_api_key()
         if not key:
             raise Exception("No Gemini API key")
-        import google.generativeai as genai
-        genai.configure(api_key=key)
-        model_name = os.getenv("GEMINI_EMBED_MODEL", "text-embedding-004")
-        vecs = []
-        for t in texts:
-            r = genai.embed_content(model=model_name, content=t)
-            emb = r["embedding"]
-            if isinstance(emb, dict):
-                emb = emb.get("values") or emb.get("embedding") or []
-            vecs.append(emb)
+        project = (
+            os.getenv("PROJECT_ID")
+            or os.getenv("GCP_PROJECT")
+            or os.getenv("GOOGLE_CLOUD_PROJECT")
+            or "dummy-project"
+        )
+        region = os.getenv("GCP_REGION") or os.getenv("REGION") or "us-central1"
+        vertexai.init(project=project, location=region, api_key=key)
+        if _EMBED_MODEL is None:
+            model_name = os.getenv("GEMINI_EMBED_MODEL", "text-embedding-004")
+            _EMBED_MODEL = TextEmbeddingModel.from_pretrained(model_name)
+        embeddings = _EMBED_MODEL.get_embeddings(texts)
+        vecs = [e.values for e in embeddings]
         return np.array(vecs, dtype="float32")
     except Exception:
         return np.zeros((len(texts), _DIM), dtype="float32")
