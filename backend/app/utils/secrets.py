@@ -6,15 +6,23 @@ def _fetch_secret(env_key: str, default_secret: str, secret_env: str) -> str | N
     key = os.getenv(env_key)
     if key:
         return key
+
+    # Avoid long hangs when credentials or metadata server are absent
+    project_id = os.getenv("PROJECT_ID") or os.getenv("GCP_PROJECT") or os.getenv("GOOGLE_CLOUD_PROJECT")
+    if not project_id:
+        return None
+
+    # Only attempt Secret Manager if explicit credentials or Cloud Run metadata are present
+    if not (os.getenv("GOOGLE_APPLICATION_CREDENTIALS") or os.getenv("K_SERVICE")):
+        return None
+
     try:
         from google.cloud import secretmanager
-        project_id = os.getenv("PROJECT_ID") or os.getenv("GCP_PROJECT") or os.getenv("GOOGLE_CLOUD_PROJECT")
-        if not project_id:
-            return None
+
         secret_name = os.getenv(secret_env, default_secret)
         client = secretmanager.SecretManagerServiceClient()
         name = f"projects/{project_id}/secrets/{secret_name}/versions/latest"
-        response = client.access_secret_version(request={"name": name})
+        response = client.access_secret_version(request={"name": name}, timeout=5)
         return response.payload.data.decode("UTF-8")
     except Exception:
         return None

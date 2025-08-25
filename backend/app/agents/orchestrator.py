@@ -1,4 +1,6 @@
 from typing import Dict, Any, List
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
 from .llm import chat_json
 from .policies import ACTION_SCHEMA, AGENT_PERSONAS, ROUND_SCRIPT
 from ..rag.store import rag
@@ -24,6 +26,10 @@ def _make_fallback_plan(question: str, budget: float) -> Dict[str, Any]:
     plan_name = "Optimizer-backed fallback"
     rationale = "LLM unavailable or timed out; returning optimizer-backed actions."
     try:
+        # Constrain optimizer to return quickly during cold starts or tests
+        import os
+        os.environ.setdefault("OPTIMIZER_TIME_LIMIT", "5")
+        os.environ.setdefault("OPTIMIZER_MAX_SKUS", "50")
         sol, _ = run_optimizer(spend_budget=float(budget), round=1)
         top = sorted(sol, key=lambda r: r.get("margin", 0.0), reverse=True)[:5]
         for r in top:
@@ -66,15 +72,31 @@ def agentic_huddle_v2(
     candidates: List[Dict[str, Any]] = []
 
     try:
-        # Round 1
-        for name in ["Demand","Assortment","PPA","TradeSpend","Optimization"]:
-            p = AGENT_PERSONAS[name]
-            out = chat_json(_prompt(name, question, "R1", context), temperature=p["temperature"], top_p=p["top_p"])
-            if "__error__" in out:
-                error_msg = (error_msg or "") + f"[{name}:{out['__error__']}] "
-            elif out:
-                candidates.append({"agent": name, "plan": out})
-            transcript.append({"role":name, "round":"R1", "content":"proposed", "plan": out})
+        # Round 1 - run agents in parallel to reduce overall latency
+        names = ["Demand", "Assortment", "PPA", "TradeSpend", "Optimization"]
+        with ThreadPoolExecutor(max_workers=len(names)) as pool:
+            fut_to_name = {}
+            for name in names:
+                p = AGENT_PERSONAS[name]
+                prompt = _prompt(name, question, "R1", context)
+                fut = pool.submit(
+                    chat_json,
+                    prompt,
+                    temperature=p["temperature"],
+                    top_p=p["top_p"],
+                )
+                fut_to_name[fut] = name
+            for fut in as_completed(fut_to_name):
+                name = fut_to_name[fut]
+                try:
+                    out = fut.result()
+                except Exception as e:
+                    out = {"__error__": str(e)}
+                if "__error__" in out:
+                    error_msg = (error_msg or "") + f"[{name}:{out['__error__']}] "
+                elif out:
+                    candidates.append({"agent": name, "plan": out})
+                transcript.append({"role": name, "round": "R1", "content": "proposed", "plan": out})
 
         if not candidates:
             fb = _make_fallback_plan(question, budget)
@@ -118,28 +140,41 @@ def agentic_huddle_v2(
                 error=error_msg,
             ).model_dump()
 
-        # Round 2 refine
+        # Round 2 refine - parallelize refinements
         refined = []
-        for s in scored[:2]:
-            name = s["agent"]
-            p = AGENT_PERSONAS[name]
-            out = chat_json(
-                _prompt(
-                    name,
-                    question
-                    + f"\n\nObserved KPIs: {s['kpis']}\nDiagnostics:{s['diag']}\nBudget: {budget}\nImprove risk-adjusted margin and feasibility.",
-                    "R2",
-                    context,
-                ),
-                temperature=p["temperature"],
-                top_p=p["top_p"],
-            )
-            if "__error__" in out:
-                error_msg = (error_msg or "") + f"[{name}_refine:{out['__error__']}] "
-            elif out:
-                rkpis, rdiag = evaluate_plan(out)
-                refined.append({"agent": name, "plan": out, "kpis": rkpis, "diag": rdiag})
-            transcript.append({"role": name, "round": "R2", "content": "refined", "plan": out})
+        subset = scored[:2]
+        if subset:
+            with ThreadPoolExecutor(max_workers=len(subset)) as pool:
+                fut_to_ctx = {}
+                for s in subset:
+                    name = s["agent"]
+                    p = AGENT_PERSONAS[name]
+                    prompt = _prompt(
+                        name,
+                        question
+                        + f"\n\nObserved KPIs: {s['kpis']}\nDiagnostics:{s['diag']}\nBudget: {budget}\nImprove risk-adjusted margin and feasibility.",
+                        "R2",
+                        context,
+                    )
+                    fut = pool.submit(
+                        chat_json,
+                        prompt,
+                        temperature=p["temperature"],
+                        top_p=p["top_p"],
+                    )
+                    fut_to_ctx[fut] = (name, s)
+                for fut in as_completed(fut_to_ctx):
+                    name, s = fut_to_ctx[fut]
+                    try:
+                        out = fut.result()
+                    except Exception as e:
+                        out = {"__error__": str(e)}
+                    if "__error__" in out:
+                        error_msg = (error_msg or "") + f"[{name}_refine:{out['__error__']}] "
+                    elif out:
+                        rkpis, rdiag = evaluate_plan(out)
+                        refined.append({"agent": name, "plan": out, "kpis": rkpis, "diag": rdiag})
+                    transcript.append({"role": name, "round": "R2", "content": "refined", "plan": out})
 
         pool = refined if refined else scored
         best_idx = pick_best([p["plan"] for p in pool]) if pool else -1
