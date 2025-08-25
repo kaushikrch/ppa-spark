@@ -88,10 +88,15 @@ echo "🧪 Running smoke tests..."
 # Initialize data and train models
 echo "📊 Initializing demo data and training models..."
 echo "  Generating synthetic data..."
-curl -f -X POST $API_URL/data/generate || echo "  ⚠️  Data generation may have failed"
+curl -f --max-time 60 -X POST $API_URL/data/generate &
+GEN_PID=$!
 
 echo "  Training elasticity models..."
-curl -f -X POST $API_URL/models/train || echo "  ⚠️  Model training may have failed"
+curl -f --max-time 120 -X POST $API_URL/models/train &
+TRAIN_PID=$!
+
+wait $GEN_PID || echo "  ⚠️  Data generation may have failed"
+wait $TRAIN_PID || echo "  ⚠️  Model training may have failed"
 
 # Final success message
 echo ""
