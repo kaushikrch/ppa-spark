@@ -1,6 +1,6 @@
 import os
 from typing import Optional
-from fastapi import FastAPI, Query, HTTPException
+from fastapi import FastAPI, Query, HTTPException, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from .schemas import HuddleResponse
 from .synth_data import gen_weekly_data
@@ -51,14 +51,27 @@ def health():
     return {"status": "healthy"}
 
 @app.post("/data/generate")
-def generate():
-    gen_weekly_data()
-    return {"ok": True, "message": "Data generated successfully"}
+def generate(background_tasks: BackgroundTasks):
+    """Kick off synthetic data generation in the background.
+
+    Running the full data generation can take a while which previously caused
+    the Cloud Run request to time out (504).  By delegating the heavy lifting to
+    a background task we return control to the caller immediately while the
+    data is produced asynchronously.
+    """
+    background_tasks.add_task(gen_weekly_data)
+    return {"ok": True, "message": "Data generation started"}
 
 @app.post("/models/train")
-def train():
-    fit_elasticities()
-    return {"ok": True, "message": "Models trained successfully"}
+def train(background_tasks: BackgroundTasks):
+    """Trigger model training asynchronously.
+
+    Training elasticities can be a long running process which previously
+    resulted in 5xx responses when the request exceeded the timeout.  Running
+    the training in a background task allows the API to respond immediately.
+    """
+    background_tasks.add_task(fit_elasticities)
+    return {"ok": True, "message": "Model training started"}
 
 @app.post("/simulate/price")
 def simulate_price(changes: dict):
