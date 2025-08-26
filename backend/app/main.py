@@ -10,6 +10,7 @@ from .models.optimizer import run_optimizer
 from .rag.store import rag
 from .agents.orchestrator import agentic_huddle, agentic_huddle_v2
 from .utils.secrets import get_gemini_api_key
+from .utils.vertextai import init_vertexai
 from .bootstrap import bootstrap_if_needed
 import threading
 
@@ -99,7 +100,6 @@ def rag_search(q: str, topk: int = 4):
 @app.post("/genai/insight")
 def insight(payload: dict):
     import pandas as pd
-    import vertexai
     from vertexai.generative_models import GenerativeModel, GenerationConfig
 
     panel_id = payload.get("panel_id", "unknown")
@@ -110,14 +110,10 @@ def insight(payload: dict):
     if not api_key:
         return {"insight": "Gemini API key not configured."}
 
-    project = (
-        os.getenv("PROJECT_ID")
-        or os.getenv("GCP_PROJECT")
-        or os.getenv("GOOGLE_CLOUD_PROJECT")
-        or "dummy-project"
-    )
-    region = os.getenv("GCP_REGION") or os.getenv("REGION") or "us-central1"
-    vertexai.init(project=project, location=region, api_key=api_key)
+    try:
+        init_vertexai(api_key)
+    except Exception:
+        return {"insight": "GCP project ID not configured."}
     model = GenerativeModel(os.getenv("GEMINI_MODEL", "gemini-2.5-flash"))
 
     if data:

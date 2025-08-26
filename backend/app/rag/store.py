@@ -7,7 +7,7 @@ from sklearn.metrics.pairwise import cosine_similarity
 from ..utils.io import engine
 from ..bootstrap import bootstrap_if_needed
 from ..utils.secrets import get_gemini_api_key
-import vertexai
+from ..utils.vertextai import init_vertexai
 from vertexai.language_models import TextEmbeddingModel
 
 try:
@@ -27,14 +27,7 @@ def _embed_texts(texts: List[str]) -> np.ndarray:
         key = get_gemini_api_key()
         if not key:
             raise Exception("No Gemini API key")
-        project = (
-            os.getenv("PROJECT_ID")
-            or os.getenv("GCP_PROJECT")
-            or os.getenv("GOOGLE_CLOUD_PROJECT")
-            or "dummy-project"
-        )
-        region = os.getenv("GCP_REGION") or os.getenv("REGION") or "us-central1"
-        vertexai.init(project=project, location=region, api_key=key)
+        init_vertexai(key)
         if _EMBED_MODEL is None:
             model_name = os.getenv("GEMINI_EMBED_MODEL", "text-embedding-004")
             _EMBED_MODEL = TextEmbeddingModel.from_pretrained(model_name)
