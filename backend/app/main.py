@@ -12,6 +12,7 @@ from .agents.orchestrator import agentic_huddle, agentic_huddle_v2
 from .utils.secrets import get_gemini_api_key
 from .utils.vertextai import init_vertexai
 from .bootstrap import bootstrap_if_needed
+from functools import lru_cache
 import threading
 
 app = FastAPI(title="iNRM PPA+Assortment API", version="1.0.0")
@@ -97,10 +98,16 @@ def rag_build():
 def rag_search(q: str, topk: int = 4):
     return {"hits": rag.query(q, topk=topk)}
 
+@lru_cache()
+def _get_model(name: str):
+    from vertexai.generative_models import GenerativeModel
+    return GenerativeModel(name)
+
+
 @app.post("/genai/insight")
 def insight(payload: dict):
     import pandas as pd
-    from vertexai.generative_models import GenerativeModel, GenerationConfig
+    from vertexai.generative_models import GenerationConfig
 
     panel_id = payload.get("panel_id", "unknown")
     q = payload.get("q", "Explain the chart succinctly")
@@ -114,7 +121,7 @@ def insight(payload: dict):
         init_vertexai(api_key)
     except Exception:
         return {"insight": "GCP project ID not configured."}
-    model = GenerativeModel(os.getenv("GEMINI_MODEL", "gemini-2.5-flash"))
+    model = _get_model(os.getenv("GEMINI_MODEL", "gemini-2.5-flash"))
 
     if data:
         df = pd.DataFrame(data)

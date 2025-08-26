@@ -1,6 +1,7 @@
 import os
 import pandas as pd
 import numpy as np
+from functools import lru_cache
 try:
     from pulp import (
         LpProblem,
@@ -22,18 +23,26 @@ from ..bootstrap import bootstrap_if_needed
 
 # MILP to maximize margin with guardrails and smoothing (discourage bound-hitting)
 
+@lru_cache()
+def _load_tables():
+    """Load required tables once to avoid repeated I/O."""
+    bootstrap_if_needed()
+    con = engine().connect()
+    return (
+        pd.read_sql("select * from price_weekly", con),
+        pd.read_sql("select * from demand_weekly", con),
+        pd.read_sql("select * from costs", con),
+        pd.read_sql("select * from guardrails", con),
+        pd.read_sql("select * from elasticities", con),
+    )
+
+
 def run_optimizer(max_pct_change_round1=0.20, max_pct_change_round2=0.40, spend_budget=1e6, round=1):
     if not PULP_AVAILABLE:
         # Fallback to simple heuristic if PuLP not available
-        return _heuristic_optimizer(max_pct_change_round1 if round==1 else max_pct_change_round2)
-    
-    bootstrap_if_needed()
-    con = engine().connect()
-    price = pd.read_sql("select * from price_weekly", con)
-    demand = pd.read_sql("select * from demand_weekly", con)
-    costs = pd.read_sql("select * from costs", con)
-    guard = pd.read_sql("select * from guardrails", con)
-    elast = pd.read_sql("select * from elasticities", con)
+        return _heuristic_optimizer(max_pct_change_round1 if round == 1 else max_pct_change_round2)
+
+    price, demand, costs, guard, elast = _load_tables()
 
     # aggregate to SKU level (latest 8 weeks)
     recent = price[price.week>=price.week.max()-8]
@@ -127,12 +136,7 @@ def run_optimizer(max_pct_change_round1=0.20, max_pct_change_round2=0.40, spend_
 
 def _heuristic_optimizer(max_change=0.20):
     """Simple heuristic fallback when PuLP is not available"""
-    bootstrap_if_needed()
-    con = engine().connect()
-    price = pd.read_sql("select * from price_weekly", con)
-    demand = pd.read_sql("select * from demand_weekly", con)
-    costs = pd.read_sql("select * from costs", con)
-    elast = pd.read_sql("select * from elasticities", con)
+    price, demand, costs, _, elast = _load_tables()
 
     recent = price[price.week >= price.week.max() - 8]
     base = (

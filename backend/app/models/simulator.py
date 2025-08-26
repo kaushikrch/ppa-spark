@@ -1,9 +1,12 @@
 import pandas as pd
 import numpy as np
+from functools import lru_cache
 from ..utils.io import engine
 from ..bootstrap import bootstrap_if_needed
 
+@lru_cache()
 def _load():
+    """Load core model tables once and cache for subsequent simulations."""
     bootstrap_if_needed()
     con = engine().connect()
     return (
