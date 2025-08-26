@@ -1,10 +1,10 @@
 import os, json
 from typing import List, Dict, Any
 
-import vertexai
 from vertexai.generative_models import GenerativeModel, GenerationConfig
 
 from ..utils.secrets import get_gemini_api_key
+from ..utils.vertextai import init_vertexai
 
 
 _MODEL_CACHE: Dict[str, GenerativeModel] = {}
@@ -13,14 +13,7 @@ _MODEL_CACHE: Dict[str, GenerativeModel] = {}
 def _get_model(name: str, key: str) -> GenerativeModel:
     """Initialize Vertex AI once and cache models for reuse."""
     if name not in _MODEL_CACHE:
-        project = (
-            os.getenv("PROJECT_ID")
-            or os.getenv("GCP_PROJECT")
-            or os.getenv("GOOGLE_CLOUD_PROJECT")
-            or "dummy-project"
-        )
-        region = os.getenv("GCP_REGION") or os.getenv("REGION") or "us-central1"
-        vertexai.init(project=project, location=region, api_key=key)
+        init_vertexai(key)
         _MODEL_CACHE[name] = GenerativeModel(name)
     return _MODEL_CACHE[name]
 
