@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import axios from "axios";
-import { API_BASE } from "../lib/api";
+import { API_BASE, REQUEST_TIMEOUT_MS } from "../lib/api";
 import { Card } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
@@ -24,9 +24,9 @@ export default function RAGSearch() {
     setError("");
     
     try {
-      const response = await axios.get(`${API_BASE}/rag/search`, { 
+      const response = await axios.get(`${API_BASE}/rag/search`, {
         params: { q, topk: 6 },
-        timeout: 600000
+        timeout: REQUEST_TIMEOUT_MS,
       });
       setHits(response.data.hits || []);
     } catch (e: unknown) {
