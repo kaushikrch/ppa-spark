@@ -4,14 +4,22 @@ from functools import lru_cache
 from ..utils.io import engine
 from ..bootstrap import bootstrap_if_needed
 
+# Limit how much historical data we pull into memory so simulations finish quickly.
+# A large dataset was causing price and delist simulations to take a long time.
+RECENT_WEEKS = 12
+
 @lru_cache()
 def _load():
-    """Load core model tables once and cache for subsequent simulations."""
+    """Load a recent slice of core model tables and cache for reuse."""
     bootstrap_if_needed()
     con = engine().connect()
+    # fetch only the most recent weeks to keep dataframe sizes small
+    max_week = pd.read_sql("select max(week) as w from price_weekly", con).iloc[0]["w"]
+    wk_cutoff = max_week - RECENT_WEEKS + 1
+    where = f" where week >= {int(wk_cutoff)}"
     return (
-        pd.read_sql("select * from price_weekly", con),
-        pd.read_sql("select * from demand_weekly", con),
+        pd.read_sql(f"select * from price_weekly{where}", con),
+        pd.read_sql(f"select * from demand_weekly{where}", con),
         pd.read_sql("select * from costs", con),
         pd.read_sql("select * from elasticities", con),
         pd.read_sql("select * from sku_master", con),
@@ -21,10 +29,12 @@ def _load():
 
 def simulate_price_change(sku_pct_changes: dict, weeks=None, retailer_ids=None):
     price, demand, costs, elast, sku = _load()
-    df = demand.merge(price, on=["week","retailer_id","sku_id"])\
-               .merge(costs, on="sku_id")\
-               .merge(elast, on="sku_id", how="left")\
-               .merge(sku[["sku_id","brand"]], on="sku_id")
+    df = (
+        demand.merge(price, on=["week", "retailer_id", "sku_id"])
+        .merge(costs, on="sku_id")
+        .merge(elast, on="sku_id", how="left")
+        .merge(sku[["sku_id", "brand"]], on="sku_id")
+    )
 
     if weeks:
         df = df[df.week.isin(weeks)]
@@ -47,14 +57,18 @@ def simulate_price_change(sku_pct_changes: dict, weeks=None, retailer_ids=None):
     df["new_revenue"] = df["new_units"] * df["new_price"]
     df["margin"] = (df["new_price"] - (df["cogs_per_unit"] + df["logistics_per_unit"])) * df["new_units"]
 
-    agg = df.groupby(["week"]).agg(units=("new_units","sum"), revenue=("new_revenue","sum"), margin=("margin","sum")).reset_index()
+    agg = (
+        df.groupby(["week"])
+        .agg(units=("new_units", "sum"), revenue=("new_revenue", "sum"), margin=("margin", "sum"))
+        .reset_index()
+    )
     return agg, df
 
 # Delist: reallocate some volume to nearest substitutes by brand+pack similarity
 
 def simulate_delist(delist_skus: list, weeks=None):
     price, demand, costs, elast, sku = _load()
-    df = demand.merge(price, on=["week","retailer_id","sku_id"]).merge(sku, on="sku_id")
+    df = demand.merge(price, on=["week", "retailer_id", "sku_id"]).merge(sku, on="sku_id")
     if weeks:
         df = df[df.week.isin(weeks)]
     base = df.copy()
@@ -66,25 +80,40 @@ def simulate_delist(delist_skus: list, weeks=None):
     if lost.empty:
         return keep
 
+    # Build pairwise similarity between lost and kept SKUs within the same week/retailer
+    lost_pairs = lost[
+        ["week", "retailer_id", "sku_id", "units", "brand", "pack_size_ml", "flavor"]
+    ]
+    keep_pairs = keep[["week", "retailer_id", "sku_id", "brand", "pack_size_ml", "flavor"]]
+    pairs = lost_pairs.merge(
+        keep_pairs,
+        on=["week", "retailer_id"],
+        suffixes=("_lost", "_keep"),
+    )
     # similarity: same brand (0.6), same pack_size (0.3), same flavor (0.1)
-    def similarity(a,b):
-        return 0.6*(a.brand==b.brand) + 0.3*(a.pack_size_ml==b.pack_size_ml) + 0.1*(a.flavor==b.flavor)
+    pairs["sim"] = (
+        0.6 * (pairs.brand_lost == pairs.brand_keep).astype(float)
+        + 0.3 * (pairs.pack_size_ml_lost == pairs.pack_size_ml_keep).astype(float)
+        + 0.1 * (pairs.flavor_lost == pairs.flavor_keep).astype(float)
+    )
+    # take top-3 similar keep SKUs for each lost SKU
+    pairs = pairs.sort_values(["week", "retailer_id", "sku_id_lost", "sim"], ascending=[True, True, True, False])
+    pairs = pairs.groupby(["week", "retailer_id", "sku_id_lost"]).head(3)
+    # allocate lost volume proportionally to similarity
+    pairs["alloc"] = (
+        pairs.units
+        * pairs.sim
+        / pairs.groupby(["week", "retailer_id", "sku_id_lost"]).sim.transform("sum")
+    ).fillna(0)
 
-    # Reallocate lost volume proportionally to top-3 similar items in the same retailer/week
-    realloc = []
-    for (w,r), g in lost.groupby(["week","retailer_id"]):
-        keep_g = keep[(keep.week==w)&(keep.retailer_id==r)]
-        if keep_g.empty: continue
-        for _, row in g.iterrows():
-            keep_g = keep_g.copy()
-            keep_g["sim"] = keep_g.apply(lambda x: similarity(row,x), axis=1)
-            top3 = keep_g.sort_values("sim", ascending=False).head(3)
-            for _, t in top3.iterrows():
-                realloc.append({"week": w, "retailer_id": r, "sku_id": t.sku_id, "add_units": int(row.units * (t.sim/top3.sim.sum()))})
-
-    add = pd.DataFrame(realloc)
+    add = (
+        pairs.groupby(["week", "retailer_id", "sku_id_keep"])
+        .alloc.sum()
+        .reset_index()
+        .rename(columns={"sku_id_keep": "sku_id", "alloc": "add_units"})
+    )
     if not add.empty:
-        keep = keep.merge(add.groupby(["week","retailer_id","sku_id"]).add_units.sum().reset_index(), how="left")
+        keep = keep.merge(add, on=["week", "retailer_id", "sku_id"], how="left")
         keep["units"] = keep["units"] + keep["add_units"].fillna(0).astype(int)
         keep.drop(columns=["add_units"], inplace=True)
     return keep
