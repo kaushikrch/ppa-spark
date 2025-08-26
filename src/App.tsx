@@ -6,17 +6,18 @@ import { BrowserRouter, Routes, Route, Link, useLocation } from "react-router-do
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Home, DollarSign, TrendingUp, Package, Settings, Zap, Search, FileText, Menu } from "lucide-react";
-import Landing from "./pages/Landing";
-import PPA from "./pages/PPA";
-import Elasticities from "./pages/Elasticities";
-import Assortment from "./pages/Assortment";
-import Simulator from "./pages/Simulator";
-import Optimizer from "./pages/Optimizer";
-import Huddle from "./pages/Huddle";
-import RAG from "./pages/RAG";
-import RAGSearch from "./pages/RAGSearch";
-import Decisions from "./pages/Decisions";
-import NotFound from "./pages/NotFound";
+import { lazy, Suspense } from "react";
+
+const Landing = lazy(() => import("./pages/Landing"));
+const PPA = lazy(() => import("./pages/PPA"));
+const Elasticities = lazy(() => import("./pages/Elasticities"));
+const Assortment = lazy(() => import("./pages/Assortment"));
+const Simulator = lazy(() => import("./pages/Simulator"));
+const Optimizer = lazy(() => import("./pages/Optimizer"));
+const Huddle = lazy(() => import("./pages/Huddle"));
+const RAGSearch = lazy(() => import("./pages/RAGSearch"));
+const Decisions = lazy(() => import("./pages/Decisions"));
+const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient();
 
@@ -84,21 +85,23 @@ const App = () => (
             <aside className="hidden lg:block">
               <Navigation />
             </aside>
-            
+
             {/* Main Content */}
             <main className="min-h-screen">
-              <Routes>
-                <Route path="/" element={<Landing />} />
-                <Route path="/ppa" element={<PPA />} />
-                <Route path="/elasticities" element={<Elasticities />} />
-                <Route path="/assortment" element={<Assortment />} />
-                <Route path="/simulator" element={<Simulator />} />
-                <Route path="/optimizer" element={<Optimizer />} />
-                <Route path="/huddle" element={<Huddle />} />
-                <Route path="/rag" element={<RAGSearch />} />
-                <Route path="/decisions" element={<Decisions />} />
-                <Route path="*" element={<NotFound />} />
-              </Routes>
+              <Suspense fallback={<div className="p-4">Loading...</div>}>
+                <Routes>
+                  <Route path="/" element={<Landing />} />
+                  <Route path="/ppa" element={<PPA />} />
+                  <Route path="/elasticities" element={<Elasticities />} />
+                  <Route path="/assortment" element={<Assortment />} />
+                  <Route path="/simulator" element={<Simulator />} />
+                  <Route path="/optimizer" element={<Optimizer />} />
+                  <Route path="/huddle" element={<Huddle />} />
+                  <Route path="/rag" element={<RAGSearch />} />
+                  <Route path="/decisions" element={<Decisions />} />
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </Suspense>
             </main>
           </div>
         </div>
