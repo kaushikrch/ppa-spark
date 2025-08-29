@@ -74,10 +74,12 @@ def simulate_delist(delist_skus: list, weeks=None):
     base = df.copy()
 
     base["keep"] = ~base.sku_id.isin(delist_skus)
-    keep = base[base.keep]
+    keep = base[base.keep].copy()
     lost = base[~base.keep]
 
     if lost.empty:
+        keep["new_units"] = keep["units"]
+        keep["volume_gain"] = 0
         return keep
 
     # Build pairwise similarity between lost and kept SKUs within the same week/retailer
@@ -114,6 +116,10 @@ def simulate_delist(delist_skus: list, weeks=None):
     )
     if not add.empty:
         keep = keep.merge(add, on=["week", "retailer_id", "sku_id"], how="left")
-        keep["units"] = keep["units"] + keep["add_units"].fillna(0).astype(int)
+        keep["new_units"] = keep["units"] + keep["add_units"].fillna(0).astype(int)
+        keep["volume_gain"] = keep["new_units"] - keep["units"]
         keep.drop(columns=["add_units"], inplace=True)
+    else:
+        keep["new_units"] = keep["units"]
+        keep["volume_gain"] = 0
     return keep

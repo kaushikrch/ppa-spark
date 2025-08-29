@@ -102,7 +102,31 @@ def train(background_tasks: BackgroundTasks):
 @app.post("/simulate/price")
 def simulate_price(changes: dict):
     agg, rows = simulate_price_change(changes)
-    return {"agg": agg.to_dict(orient="records"), "rows": rows.to_dict(orient="records")}
+    base_units = rows["units"].sum() if "units" in rows else 0
+    new_units = rows["new_units"].sum() if "new_units" in rows else base_units
+    base_revenue = (
+        (rows["units"] * rows["net_price"]) if {"units", "net_price"} <= set(rows.columns) else 0
+    )
+    base_revenue = base_revenue.sum() if hasattr(base_revenue, "sum") else base_revenue
+    new_revenue = rows["new_revenue"].sum() if "new_revenue" in rows else 0
+    if {"net_price", "cogs_per_unit", "logistics_per_unit", "units"} <= set(rows.columns):
+        base_margin = (
+            (rows["net_price"] - (rows["cogs_per_unit"] + rows["logistics_per_unit"]))
+            * rows["units"]
+        ).sum()
+    else:
+        base_margin = 0
+    new_margin = rows["margin"].sum() if "margin" in rows else 0
+    summary = {
+        "volume_change": (new_units - base_units) / base_units * 100 if base_units else 0,
+        "revenue_change": (new_revenue - base_revenue) / base_revenue * 100 if base_revenue else 0,
+        "margin_change": (new_margin - base_margin) / base_margin * 100 if base_margin else 0,
+    }
+    return {
+        "agg": agg.to_dict(orient="records"),
+        "rows": rows.to_dict(orient="records"),
+        "summary": summary,
+    }
 
 @app.post("/simulate/delist")
 def simulate_delist_api(ids: list[int]):
