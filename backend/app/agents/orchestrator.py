@@ -77,10 +77,14 @@ def agentic_huddle_v2(
 ) -> Dict[str, Any]:
     # Hard cap to 3 rounds of debate to keep deliberation bounded
     debate_rounds = min(debate_rounds, 3)
-    hits = rag.query(question, topk=4)
+    error_msg: str | None = None
+    try:
+        hits = rag.query(question, topk=4)
+    except Exception:
+        hits = []
+        error_msg = "Some data sources were unavailable; results may be limited."
     context = [h["text"] for h in hits]
     transcript: List[Dict[str, Any]] = []
-    error_msg: str | None = None
     candidates: List[Dict[str, Any]] = []
 
     try:

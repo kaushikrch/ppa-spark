@@ -50,6 +50,10 @@ export interface OptimizationResult {
     n_near_bound: number;
     rev: number;
     margin: number;
+    rev_base: number;
+    margin_base: number;
+    rev_delta: number;
+    margin_delta: number;
   };
 }
 

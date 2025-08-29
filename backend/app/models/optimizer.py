@@ -126,11 +126,25 @@ def run_optimizer(max_pct_change_round1=0.20, max_pct_change_round2=0.40, spend_
     sol["new_price"] = sol["p0"] * (1+sol["pct_change"])
     sol["new_units"] = sol["base_units"] * (1 + sol["own_elast"]*sol["pct_change"])
     sol["margin"] = (sol["new_price"] - (sol["cogs_per_unit"]+sol["logistics_per_unit"])) * sol["new_units"]
+    rev_base = float((sol["p0"] * sol["base_units"]).sum())
+    margin_base = float(
+        (
+            sol["p0"]
+            - (sol["cogs_per_unit"] + sol["logistics_per_unit"])
+        )
+        * sol["base_units"]
+    )
+    rev_new = float((sol["new_price"] * sol["new_units"]).sum())
+    margin_new = float(sol["margin"].sum())
     kpis = {
         "status": LpStatus[M.status],
         "n_near_bound": int(sol.near_bound.sum()),
-        "rev": float((sol["new_price"]*sol["new_units"]).sum()),
-        "margin": float(sol["margin"].sum()),
+        "rev": rev_new,
+        "margin": margin_new,
+        "rev_base": rev_base,
+        "margin_base": margin_base,
+        "rev_delta": rev_new - rev_base,
+        "margin_delta": margin_new - margin_base,
     }
     return sol.to_dict(orient="records"), kpis
 
@@ -167,11 +181,26 @@ def _heuristic_optimizer(max_change=0.20):
     df["new_price"] = df["p0"] * (1 + df["pct_change"])
     df["new_units"] = df["base_units"] * (1 + df["own_elast"] * df["pct_change"])
     df["margin"] = (df["new_price"] - (df["cogs_per_unit"] + df["logistics_per_unit"])) * df["new_units"]
-    
+
+    rev_base = float((df["p0"] * df["base_units"]).sum())
+    margin_base = float(
+        (
+            df["p0"]
+            - (df["cogs_per_unit"] + df["logistics_per_unit"])
+        )
+        * df["base_units"]
+    )
+    rev_new = float((df["new_price"] * df["new_units"]).sum())
+    margin_new = float(df["margin"].sum())
+
     kpis = {
         "status": "Optimal",
         "n_near_bound": 0,
-        "rev": float((df["new_price"] * df["new_units"]).sum()),
-        "margin": float(df["margin"].sum()),
+        "rev": rev_new,
+        "margin": margin_new,
+        "rev_base": rev_base,
+        "margin_base": margin_base,
+        "rev_delta": rev_new - rev_base,
+        "margin_delta": margin_new - margin_base,
     }
     return df.to_dict(orient="records"), kpis

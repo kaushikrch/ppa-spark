@@ -21,6 +21,10 @@ interface OptimizerResult {
     n_near_bound: number;
     rev: number;
     margin: number;
+    rev_base: number;
+    margin_base: number;
+    rev_delta: number;
+    margin_delta: number;
   };
 }
 
@@ -141,11 +145,19 @@ const OptimizerView: React.FC = () => {
                 <TrendingUp className="h-5 w-5 text-success" />
                 <h4 className="font-semibold text-foreground">Revenue Impact</h4>
               </div>
-              <div className="text-2xl font-bold text-foreground mb-2">
-                {formatCurrency(result.kpis.rev)}
+              <div className="text-2xl font-bold text-foreground mb-2 flex items-baseline space-x-2">
+                <span>{formatCurrency(result.kpis.rev)}</span>
+                <span
+                  className={`text-sm ${
+                    result.kpis.rev_delta >= 0 ? 'text-success' : 'text-destructive'
+                  }`}
+                >
+                  {result.kpis.rev_delta >= 0 ? '+' : ''}
+                  {formatCurrency(result.kpis.rev_delta)}
+                </span>
               </div>
               <p className="text-sm text-muted-foreground">
-                Projected revenue after optimization
+                Baseline: {formatCurrency(result.kpis.rev_base)}
               </p>
             </Card>
             
@@ -154,11 +166,19 @@ const OptimizerView: React.FC = () => {
                 <CheckCircle className="h-5 w-5 text-success" />
                 <h4 className="font-semibold text-foreground">Margin Improvement</h4>
               </div>
-              <div className="text-2xl font-bold text-foreground mb-2">
-                {formatCurrency(result.kpis.margin)}
+              <div className="text-2xl font-bold text-foreground mb-2 flex items-baseline space-x-2">
+                <span>{formatCurrency(result.kpis.margin)}</span>
+                <span
+                  className={`text-sm ${
+                    result.kpis.margin_delta >= 0 ? 'text-success' : 'text-destructive'
+                  }`}
+                >
+                  {result.kpis.margin_delta >= 0 ? '+' : ''}
+                  {formatCurrency(result.kpis.margin_delta)}
+                </span>
               </div>
               <p className="text-sm text-muted-foreground">
-                Total margin after price changes
+                Baseline: {formatCurrency(result.kpis.margin_base)}
               </p>
             </Card>
           </div>

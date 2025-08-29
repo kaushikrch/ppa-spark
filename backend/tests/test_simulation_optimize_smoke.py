@@ -21,9 +21,20 @@ def test_simulate_price_smoke(monkeypatch):
 
 
 def test_optimize_run_smoke(monkeypatch):
-    monkeypatch.setattr("app.main.run_optimizer", lambda round=1: ([{"sku_id": 1}], {"margin": 10}))
+    dummy_kpis = {
+        "status": "Optimal",
+        "n_near_bound": 0,
+        "rev": 100,
+        "margin": 10,
+        "rev_base": 90,
+        "margin_base": 8,
+        "rev_delta": 10,
+        "margin_delta": 2,
+    }
+    monkeypatch.setattr("app.main.run_optimizer", lambda round=1: ([{"sku_id": 1}], dummy_kpis))
     resp = client.post("/optimize/run")
     assert resp.status_code == 200
     data = resp.json()
     assert data["solution"][0]["sku_id"] == 1
-    assert "margin" in data["kpis"]
+    for key in dummy_kpis:
+        assert key in data["kpis"]
