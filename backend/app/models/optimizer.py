@@ -134,15 +134,20 @@ def _run_optimizer_pulp(max_pct_change_round1=0.20, max_pct_change_round2=0.40, 
     )
     rev_new = float((sol["new_price"] * sol["new_units"]).sum())
     margin_new = float(sol["margin"].sum())
+    vol_base = float(sol["base_units"].sum())
+    vol_new = float(sol["new_units"].sum())
     kpis = {
         "status": LpStatus[M.status],
         "n_near_bound": int(sol.near_bound.sum()),
         "rev": rev_new,
         "margin": margin_new,
+        "vol": vol_new,
         "rev_base": rev_base,
         "margin_base": margin_base,
+        "vol_base": vol_base,
         "rev_delta": rev_new - rev_base,
         "margin_delta": margin_new - margin_base,
+        "vol_delta": vol_new - vol_base,
     }
     return sol.to_dict(orient="records"), kpis
 
@@ -203,15 +208,20 @@ def _heuristic_optimizer(max_change=0.20):
     )
     rev_new = float((df["new_price"] * df["new_units"]).sum())
     margin_new = float(df["margin"].sum())
+    vol_base = float(df["base_units"].sum())
+    vol_new = float(df["new_units"].sum())
 
     kpis = {
         "status": "Optimal",
         "n_near_bound": 0,
         "rev": rev_new,
         "margin": margin_new,
+        "vol": vol_new,
         "rev_base": rev_base,
         "margin_base": margin_base,
+        "vol_base": vol_base,
         "rev_delta": rev_new - rev_base,
         "margin_delta": margin_new - margin_base,
+        "vol_delta": vol_new - vol_base,
     }
     return df.to_dict(orient="records"), kpis

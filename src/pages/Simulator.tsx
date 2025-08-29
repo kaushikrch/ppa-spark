@@ -198,7 +198,7 @@ const Simulator: React.FC = () => {
                 <h3 className="font-semibold text-foreground">Volume Impact</h3>
               </div>
               <div className={`text-2xl font-bold mb-2 ${simulationResult.summary.volume_change >= 0 ? 'text-success' : 'text-destructive'}`}>
-                {formatPercent(simulationResult.summary.volume_change)}
+                {formatPercent(Number(simulationResult.summary.volume_change))}
               </div>
               <p className="text-sm text-muted-foreground">
                 Expected volume change from price adjustments
