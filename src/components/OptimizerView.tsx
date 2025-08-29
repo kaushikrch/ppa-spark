@@ -29,6 +29,11 @@ const OptimizerView: React.FC = () => {
   const [result, setResult] = useState<OptimizerResult | null>(null);
   const [loading, setLoading] = useState(false);
 
+  useEffect(() => {
+    // Clear previous results when switching rounds
+    setResult(null);
+  }, [round]);
+
   const runOptimization = async () => {
     setLoading(true);
     try {
@@ -36,22 +41,7 @@ const OptimizerView: React.FC = () => {
       setResult(response.data);
     } catch (error) {
       console.error('Optimization failed:', error);
-      // Mock result for demo
-      setResult({
-        solution: [
-          { sku_id: 1001, brand: 'Aurel', pct_change: 0.08, near_bound: 0, new_price: 2.43, margin: 1250, p0: 2.25 },
-          { sku_id: 1002, brand: 'Novis', pct_change: -0.05, near_bound: 0, new_price: 3.14, margin: 2100, p0: 3.30 },
-          { sku_id: 1003, brand: 'Verra', pct_change: 0.15, near_bound: 1, new_price: 4.89, margin: 3200, p0: 4.25 },
-          { sku_id: 1004, brand: 'Kairo', pct_change: 0.12, near_bound: 0, new_price: 3.92, margin: 1800, p0: 3.50 },
-          { sku_id: 1005, brand: 'Lumio', pct_change: -0.02, near_bound: 0, new_price: 5.39, margin: 4100, p0: 5.50 },
-        ],
-        kpis: {
-          status: 'Optimal',
-          n_near_bound: 1,
-          rev: 12450000,
-          margin: 3890000
-        }
-      });
+      setResult(null);
     } finally {
       setLoading(false);
     }

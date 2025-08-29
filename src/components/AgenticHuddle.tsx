@@ -423,7 +423,7 @@ export default function AgenticHuddle() {
           
           {resp?.error && (
             <div className="text-xs text-amber-700 mt-1">
-              Engine notes: {resp.error}
+              Some data sources were unavailable; results may be limited.
             </div>
           )}
           
@@ -438,49 +438,55 @@ export default function AgenticHuddle() {
             </div>
           )}
 
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-sm bg-background/10 rounded-lg">
-              <thead>
-                <tr className="text-left border-b border-primary-foreground/20">
-                  <th className="p-3 text-primary-foreground font-medium">Action</th>
-                  <th className="p-3 text-primary-foreground font-medium">Targets</th>
-                  <th className="p-3 text-primary-foreground font-medium">Δ%</th>
-                  <th className="p-3 text-primary-foreground font-medium">Impact (U/Rev/Mgn)</th>
-                  <th className="p-3 text-primary-foreground font-medium">Risks</th>
-                  <th className="p-3 text-primary-foreground font-medium">Confidence</th>
-                </tr>
-              </thead>
-              <tbody>
-                {FinalPlan.actions?.map((a, i) => (
-                  <tr key={i} className="border-t border-primary-foreground/10">
-                    <td className="p-3 text-primary-foreground/90 font-medium">
-                      {a.action_type.replace('_', ' ')}
-                    </td>
-                    <td className="p-3 text-primary-foreground/80">
-                      <div>{a.target_type}</div>
-                      <div className="text-xs text-primary-foreground/60">
-                        {a.ids?.join(", ")}
-                      </div>
-                    </td>
-                    <td className="p-3 text-primary-foreground/90 font-mono">
-                      {(a.magnitude_pct * 100).toFixed(1)}%
-                    </td>
-                    <td className="p-3 text-primary-foreground/80 text-xs">
-                      <div>U: {a.expected_impact?.units?.toFixed(0) ?? "-"}</div>
-                      <div>Rev: {a.expected_impact?.revenue?.toFixed(0) ?? "-"}</div>
-                      <div>Mgn: {a.expected_impact?.margin?.toFixed(0) ?? "-"}</div>
-                    </td>
-                    <td className="p-3 text-primary-foreground/70 text-xs max-w-48">
-                      {a.risks?.slice(0, 2).join("; ") || "-"}
-                    </td>
-                    <td className="p-3 text-primary-foreground/90 font-mono">
-                      {(a.confidence ?? 0).toFixed(2)}
-                    </td>
+          {FinalPlan.actions && FinalPlan.actions.length > 0 ? (
+            <div className="overflow-x-auto">
+              <table className="min-w-full text-sm bg-background/10 rounded-lg">
+                <thead>
+                  <tr className="text-left border-b border-primary-foreground/20">
+                    <th className="p-3 text-primary-foreground font-medium">Action</th>
+                    <th className="p-3 text-primary-foreground font-medium">Targets</th>
+                    <th className="p-3 text-primary-foreground font-medium">Δ%</th>
+                    <th className="p-3 text-primary-foreground font-medium">Impact (U/Rev/Mgn)</th>
+                    <th className="p-3 text-primary-foreground font-medium">Risks</th>
+                    <th className="p-3 text-primary-foreground font-medium">Confidence</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {FinalPlan.actions.map((a, i) => (
+                    <tr key={i} className="border-t border-primary-foreground/10">
+                      <td className="p-3 text-primary-foreground/90 font-medium">
+                        {a.action_type.replace('_', ' ')}
+                      </td>
+                      <td className="p-3 text-primary-foreground/80">
+                        <div>{a.target_type}</div>
+                        <div className="text-xs text-primary-foreground/60">
+                          {a.ids?.join(", ")}
+                        </div>
+                      </td>
+                      <td className="p-3 text-primary-foreground/90 font-mono">
+                        {(a.magnitude_pct * 100).toFixed(1)}%
+                      </td>
+                      <td className="p-3 text-primary-foreground/80 text-xs">
+                        <div>U: {a.expected_impact?.units?.toFixed(0) ?? "-"}</div>
+                        <div>Rev: {a.expected_impact?.revenue?.toFixed(0) ?? "-"}</div>
+                        <div>Mgn: {a.expected_impact?.margin?.toFixed(0) ?? "-"}</div>
+                      </td>
+                      <td className="p-3 text-primary-foreground/70 text-xs max-w-48">
+                        {a.risks?.slice(0, 2).join("; ") || "-"}
+                      </td>
+                      <td className="p-3 text-primary-foreground/90 font-mono">
+                        {(a.confidence ?? 0).toFixed(2)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="text-sm text-primary-foreground/80">
+              No actions returned in the final plan.
+            </div>
+          )}
 
           {FinalPlan.rationale && (
             <div className="mt-4 p-3 bg-background/10 rounded-lg">
