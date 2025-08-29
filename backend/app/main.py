@@ -131,7 +131,14 @@ def simulate_price(changes: dict):
 @app.post("/simulate/delist")
 def simulate_delist_api(ids: list[int]):
     df = simulate_delist(ids)
-    return {"rows": df.to_dict(orient="records")}
+    base_units = int(df["units"].sum()) if "units" in df else 0
+    new_units = int(df["new_units"].sum()) if "new_units" in df else base_units
+    volume_transferred = int(df["volume_gain"].sum()) if "volume_gain" in df else 0
+    summary = {
+        "volume_transferred": volume_transferred,
+        "volume_change": (new_units - base_units) / base_units * 100 if base_units else 0,
+    }
+    return {"rows": df.to_dict(orient="records"), "summary": summary}
 
 @app.post("/optimize/run")
 def optimize(round: int = 1):

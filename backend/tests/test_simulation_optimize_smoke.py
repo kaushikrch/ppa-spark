@@ -26,10 +26,13 @@ def test_optimize_run_smoke(monkeypatch):
         "n_near_bound": 0,
         "rev": 100,
         "margin": 10,
+        "vol": 50,
         "rev_base": 90,
         "margin_base": 8,
+        "vol_base": 45,
         "rev_delta": 10,
         "margin_delta": 2,
+        "vol_delta": 5,
     }
     monkeypatch.setattr("app.main.run_optimizer", lambda round=1: ([{"sku_id": 1}], dummy_kpis))
     resp = client.post("/optimize/run")

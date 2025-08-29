@@ -50,10 +50,13 @@ export interface OptimizationResult {
     n_near_bound: number;
     rev: number;
     margin: number;
+    vol: number;
     rev_base: number;
     margin_base: number;
+    vol_base: number;
     rev_delta: number;
     margin_delta: number;
+    vol_delta: number;
   };
 }
 
@@ -80,7 +83,7 @@ export const apiService = {
   ): Promise<{ data: SimulationResult }> => api.post("/simulate/price", changes),
   simulateDelist: (
     ids: number[]
-  ): Promise<{ data: { rows: Array<Record<string, unknown>> } }> =>
+  ): Promise<{ data: { rows: Array<Record<string, unknown>>; summary: { volume_transferred: number; volume_change: number } } }> =>
     api.post("/simulate/delist", ids),
 
   runOptimizer: (round: number = 1): Promise<{data: OptimizationResult}> =>

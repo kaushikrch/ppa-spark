@@ -3,7 +3,7 @@ import { Card } from './ui/card';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { Progress } from './ui/progress';
-import { Play, RotateCcw, TrendingUp, AlertTriangle, CheckCircle } from 'lucide-react';
+import { Play, RotateCcw, TrendingUp, AlertTriangle, CheckCircle, Package } from 'lucide-react';
 import { apiService } from '../lib/api';
 
 interface OptimizerResult {
@@ -21,10 +21,13 @@ interface OptimizerResult {
     n_near_bound: number;
     rev: number;
     margin: number;
+    vol: number;
     rev_base: number;
     margin_base: number;
+    vol_base: number;
     rev_delta: number;
     margin_delta: number;
+    vol_delta: number;
   };
 }
 
@@ -53,6 +56,7 @@ const OptimizerView: React.FC = () => {
 
   const formatCurrency = (value: number) => `₹${(value / 1000000).toFixed(1)}M`;
   const formatPercent = (value: number) => `${(value * 100).toFixed(1)}%`;
+  const formatUnits = (value: number) => value.toLocaleString();
 
   return (
     <div className="space-y-6">
@@ -139,7 +143,27 @@ const OptimizerView: React.FC = () => {
       {result && (
         <>
           {/* KPI Summary */}
-          <div className="grid md:grid-cols-2 gap-6">
+          <div className="grid md:grid-cols-3 gap-6">
+            <Card className="p-6 bg-gradient-secondary border-0 shadow-elegant">
+              <div className="flex items-center space-x-3 mb-4">
+                <Package className="h-5 w-5 text-primary" />
+                <h4 className="font-semibold text-foreground">Volume Impact</h4>
+              </div>
+              <div className="text-2xl font-bold text-foreground mb-2 flex items-baseline space-x-2">
+                <span>{formatUnits(result.kpis.vol)}</span>
+                <span
+                  className={`text-sm ${
+                    result.kpis.vol_delta >= 0 ? 'text-success' : 'text-destructive'
+                  }`}
+                >
+                  {result.kpis.vol_delta >= 0 ? '+' : ''}
+                  {formatUnits(result.kpis.vol_delta)}
+                </span>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Baseline: {formatUnits(result.kpis.vol_base)}
+              </p>
+            </Card>
             <Card className="p-6 bg-gradient-secondary border-0 shadow-elegant">
               <div className="flex items-center space-x-3 mb-4">
                 <TrendingUp className="h-5 w-5 text-success" />

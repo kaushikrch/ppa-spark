@@ -24,6 +24,10 @@ const AssortmentSim: React.FC<AssortmentSimProps> = ({ className = "" }) => {
 
   interface DelistResult {
     rows: SimulationRow[];
+    summary: {
+      volume_transferred: number;
+      volume_change: number;
+    };
   }
 
   const [simulationResult, setSimulationResult] = useState<DelistResult | null>(null);
@@ -53,17 +57,28 @@ const AssortmentSim: React.FC<AssortmentSimProps> = ({ className = "" }) => {
     setLoading(true);
     try {
       const response = await apiService.simulateDelist(selectedForDelist);
-      setSimulationResult(response.data);
+      const res = response.data as DelistResult;
+      res.summary.volume_transferred = Number(res.summary.volume_transferred || 0);
+      res.summary.volume_change = Number(res.summary.volume_change || 0);
+      setSimulationResult(res);
     } catch (error) {
       console.error('Simulation failed:', error);
       // Mock result for demo
+      const rows = skus
+        .filter(sku => !selectedForDelist.includes(sku.id))
+        .map(sku => ({
+          ...sku,
+          new_units: sku.units + Math.floor(Math.random() * 500),
+          volume_gain: Math.floor(Math.random() * 500)
+        }));
+      const total = rows.reduce((sum, r) => sum + (r.volume_gain || 0), 0);
+      const base = rows.reduce((sum, r) => sum + r.units, 0);
       setSimulationResult({
-        rows: skus.filter(sku => !selectedForDelist.includes(sku.id))
-          .map(sku => ({
-            ...sku,
-            new_units: sku.units + Math.floor(Math.random() * 500),
-            volume_gain: Math.floor(Math.random() * 500)
-          }))
+        rows,
+        summary: {
+          volume_transferred: total,
+          volume_change: base ? (total / base) * 100 : 0,
+        },
       });
     } finally {
       setLoading(false);
@@ -150,7 +165,7 @@ const AssortmentSim: React.FC<AssortmentSimProps> = ({ className = "" }) => {
                     </div>
                     <div className="text-right">
                       <p className="text-sm font-medium text-success">
-                        +{(sku.volume_gain || 0).toLocaleString()} units
+                        +{Number(sku.volume_gain || 0).toLocaleString()} units
                       </p>
                       <p className="text-xs text-muted-foreground">
                         New total: {(sku.new_units || sku.units).toLocaleString()}
@@ -161,9 +176,7 @@ const AssortmentSim: React.FC<AssortmentSimProps> = ({ className = "" }) => {
               ))}
               <div className="mt-4 p-3 rounded-lg bg-primary/10 border border-primary/20">
                 <p className="text-sm text-primary font-medium">
-                  Total volume transferred: {simulationResult.rows
-                    .reduce((sum: number, sku: SimulationRow) => sum + (sku.volume_gain || 0), 0)
-                    .toLocaleString()} units
+                  Total volume transferred: {simulationResult.summary.volume_transferred.toLocaleString()} units
                 </p>
               </div>
             </div>
