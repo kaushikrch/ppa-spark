@@ -37,11 +37,7 @@ def _load_tables():
     )
 
 
-def run_optimizer(max_pct_change_round1=0.20, max_pct_change_round2=0.40, spend_budget=1e6, round=1):
-    if not PULP_AVAILABLE:
-        # Fallback to simple heuristic if PuLP not available
-        return _heuristic_optimizer(max_pct_change_round1 if round == 1 else max_pct_change_round2)
-
+def _run_optimizer_pulp(max_pct_change_round1=0.20, max_pct_change_round2=0.40, spend_budget=1e6, round=1):
     price, demand, costs, guard, elast = _load_tables()
 
     # aggregate to SKU level (latest 8 weeks)
@@ -147,6 +143,17 @@ def run_optimizer(max_pct_change_round1=0.20, max_pct_change_round2=0.40, spend_
         "margin_delta": margin_new - margin_base,
     }
     return sol.to_dict(orient="records"), kpis
+
+
+def run_optimizer(max_pct_change_round1=0.20, max_pct_change_round2=0.40, spend_budget=1e6, round=1):
+    """Run the optimizer with graceful fallback if MILP solver fails."""
+    if not PULP_AVAILABLE:
+        return _heuristic_optimizer(max_pct_change_round1 if round == 1 else max_pct_change_round2)
+    try:
+        return _run_optimizer_pulp(max_pct_change_round1, max_pct_change_round2, spend_budget, round)
+    except Exception:
+        return _heuristic_optimizer(max_pct_change_round1 if round == 1 else max_pct_change_round2)
+
 
 def _heuristic_optimizer(max_change=0.20):
     """Simple heuristic fallback when PuLP is not available"""
