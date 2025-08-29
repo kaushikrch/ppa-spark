@@ -125,10 +125,12 @@ def _run_optimizer_pulp(max_pct_change_round1=0.20, max_pct_change_round2=0.40, 
     rev_base = float((sol["p0"] * sol["base_units"]).sum())
     margin_base = float(
         (
-            sol["p0"]
-            - (sol["cogs_per_unit"] + sol["logistics_per_unit"])
-        )
-        * sol["base_units"]
+            (
+                sol["p0"]
+                - (sol["cogs_per_unit"] + sol["logistics_per_unit"])
+            )
+            * sol["base_units"]
+        ).sum()
     )
     rev_new = float((sol["new_price"] * sol["new_units"]).sum())
     margin_new = float(sol["margin"].sum())
@@ -192,10 +194,12 @@ def _heuristic_optimizer(max_change=0.20):
     rev_base = float((df["p0"] * df["base_units"]).sum())
     margin_base = float(
         (
-            df["p0"]
-            - (df["cogs_per_unit"] + df["logistics_per_unit"])
-        )
-        * df["base_units"]
+            (
+                df["p0"]
+                - (df["cogs_per_unit"] + df["logistics_per_unit"])
+            )
+            * df["base_units"]
+        ).sum()
     )
     rev_new = float((df["new_price"] * df["new_units"]).sum())
     margin_new = float(df["margin"].sum())

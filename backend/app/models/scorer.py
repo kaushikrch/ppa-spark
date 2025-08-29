@@ -57,9 +57,14 @@ def evaluate_plan(plan: Dict[str, Any]) -> Tuple[Dict[str, float], Dict[str, int
     if delists:
         keep = simulate_delist(delists)
         if not keep.empty:
-            kpi_total["units"] += float(keep["units"].sum())
-            kpi_total["revenue"] += float((keep["units"] * 1.0).sum())
-            kpi_total["margin"] += float((keep.get("units",0) * 0.2).sum())
+            units_series = (
+                keep["new_units"]
+                if "new_units" in keep.columns
+                else keep.get("units", pd.Series(dtype=float))
+            )
+            kpi_total["units"] += float(units_series.sum())
+            kpi_total["revenue"] += float((units_series * 1.0).sum())
+            kpi_total["margin"] += float((units_series * 0.2).sum())
 
     n_actions = len(plan.get("actions", []))
     risk_pen = 0.02 * near_bound_hits + 0.005 * n_actions
