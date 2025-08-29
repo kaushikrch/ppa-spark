@@ -1,4 +1,5 @@
 import os
+import logging
 from typing import Optional
 from fastapi import FastAPI, Query, HTTPException, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
@@ -14,6 +15,29 @@ from .utils.vertextai import init_vertexai
 from .bootstrap import bootstrap_if_needed
 from functools import lru_cache
 import threading
+
+# Configure application logging early to tame noisy dependencies
+LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()
+logging.basicConfig(level=getattr(logging, LOG_LEVEL, logging.INFO))
+
+# PyArrow can produce verbose output; allow tuning via env
+PYARROW_LOG_LEVEL = os.getenv("PYARROW_LOG_LEVEL", "ERROR").upper()
+try:
+    import pyarrow as pa
+
+    pa.set_log_level(getattr(pa.lib.ArrowLogLevel, PYARROW_LOG_LEVEL))
+    logging.getLogger("pyarrow").setLevel(
+        getattr(logging, PYARROW_LOG_LEVEL, logging.ERROR)
+    )
+    logging.getLogger(__name__).debug("PyArrow %s loaded", pa.__version__)
+except ModuleNotFoundError:
+    logging.getLogger(__name__).info(
+        "pyarrow not installed; parquet operations will use pandas"
+    )
+except Exception as exc:
+    logging.getLogger(__name__).warning(
+        "Failed to configure pyarrow logging: %s", exc
+    )
 
 app = FastAPI(title="iNRM PPA+Assortment API", version="1.0.0")
 

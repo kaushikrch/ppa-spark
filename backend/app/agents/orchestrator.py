@@ -31,21 +31,33 @@ def _make_fallback_plan(question: str, budget: float) -> Dict[str, Any]:
         os.environ.setdefault("OPTIMIZER_TIME_LIMIT", "5")
         os.environ.setdefault("OPTIMIZER_MAX_SKUS", "50")
         sol, _ = run_optimizer(spend_budget=float(budget), round=1)
-        top = sorted(sol, key=lambda r: r.get("margin", 0.0), reverse=True)[:5]
+        top = sorted(
+            sol,
+            key=lambda r: r.get("margin") or -1e9,
+            reverse=True,
+        )[:5]
         for r in top:
             sid = str(r.get("sku_id", "unknown"))
-            pct = float(r.get("pct_change", 0.0))
-            actions.append({
-                "action_type": "price_change",
-                "target_type": "sku",
-                "ids": [sid],
-                "magnitude_pct": pct,
-                "constraints": ["near-bound ≤10% estate-wide", "respect guardrails"],
-                "expected_impact": {"margin": float(r.get("margin", 0.0))},
-                "risks": ["shopper trust if >8% for Core"],
-                "confidence": 0.6,
-                "evidence_refs": ["TABLE:price_weekly","TABLE:elasticities"],
-            })
+            pct_raw = r.get("pct_change")
+            pct = float(pct_raw) if pct_raw is not None else 0.0
+            margin_raw = r.get("margin")
+            margin = float(margin_raw) if margin_raw is not None else 0.0
+            actions.append(
+                {
+                    "action_type": "price_change",
+                    "target_type": "sku",
+                    "ids": [sid],
+                    "magnitude_pct": pct,
+                    "constraints": [
+                        "near-bound ≤10% estate-wide",
+                        "respect guardrails",
+                    ],
+                    "expected_impact": {"margin": margin},
+                    "risks": ["shopper trust if >8% for Core"],
+                    "confidence": 0.6,
+                    "evidence_refs": ["TABLE:price_weekly", "TABLE:elasticities"],
+                }
+            )
     except Exception:
         plan_name = "Optimizer fallback"
         rationale = "LLM and optimizer unavailable; returning placeholder actions."
