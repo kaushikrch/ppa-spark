@@ -67,6 +67,74 @@ def evaluate_plan(plan: Dict[str, Any]) -> Tuple[Dict[str, float], Dict[str, int
     diag = {"near_bound_hits": near_bound_hits, "n_actions": n_actions}
     return kpi_total, diag
 
+
+def annotate_expected_impacts(plan: Dict[str, Any]) -> Dict[str, Any]:
+    """Populate ``expected_impact`` for each action in a plan.
+
+    Uses a lightweight elasticity-based estimate from the most recent
+    price/volume baseline.  Only ``price_change`` and ``delist`` actions are
+    handled; other action types are left unchanged.  The function mutates the
+    incoming ``plan`` dictionary and also returns it for convenience.
+    """
+
+    try:
+        base = _latest_price_and_base().set_index("sku_id")
+    except Exception:
+        # If we cannot load the baseline, leave impacts empty
+        return plan
+
+    for action in plan.get("actions", []):
+        impacts = {"units": 0.0, "revenue": 0.0, "margin": 0.0}
+        ids = action.get("ids", [])
+        t = action.get("action_type")
+        mag = float(action.get("magnitude_pct", 0.0))
+
+        if t == "price_change":
+            for sid in ids:
+                try:
+                    sid_int = int(str(sid))
+                    row = base.loc[sid_int]
+                    p0 = row["p0"]
+                    u0 = row["u0"]
+                    c = row["cogs_per_unit"] + row["logistics_per_unit"]
+                    e = row["own_elast"]
+                except Exception:
+                    continue
+
+                new_p = p0 * (1.0 + mag)
+                own_factor = np.exp(e * np.log(max(new_p, 0.01) / max(p0, 0.01)))
+                new_u = u0 * own_factor
+                new_rev = new_p * new_u
+                new_m = (new_p - c) * new_u
+
+                base_rev = p0 * u0
+                base_m = (p0 - c) * u0
+
+                impacts["units"] += float(new_u - u0)
+                impacts["revenue"] += float(new_rev - base_rev)
+                impacts["margin"] += float(new_m - base_m)
+
+        elif t == "delist":
+            for sid in ids:
+                try:
+                    sid_int = int(str(sid))
+                    row = base.loc[sid_int]
+                    p0 = row["p0"]
+                    u0 = row["u0"]
+                    c = row["cogs_per_unit"] + row["logistics_per_unit"]
+                except Exception:
+                    continue
+
+                impacts["units"] -= float(u0)
+                impacts["revenue"] -= float(p0 * u0)
+                impacts["margin"] -= float((p0 - c) * u0)
+
+        # Only set if we computed something meaningful
+        if any(abs(v) > 1e-9 for v in impacts.values()):
+            action["expected_impact"] = impacts
+
+    return plan
+
 def pick_best(plans: List[Dict[str, Any]]) -> int:
     scores = []
     for p in plans:

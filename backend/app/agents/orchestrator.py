@@ -4,7 +4,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from .llm import chat_json
 from .policies import ACTION_SCHEMA, AGENT_PERSONAS, ROUND_SCRIPT
 from ..rag.store import rag
-from ..models.scorer import evaluate_plan, pick_best
+from ..models.scorer import evaluate_plan, pick_best, annotate_expected_impacts
 from ..models.optimizer import run_optimizer
 from ..schemas import HuddleResponse, PlanJSON
 
@@ -79,6 +79,8 @@ def agentic_huddle_v2(
     debate_rounds = min(debate_rounds, 3)
     error_msg: str | None = None
     try:
+        if not getattr(rag, "docs", []):
+            rag.build()
         hits = rag.query(question, topk=4)
     except Exception:
         hits = []
@@ -116,6 +118,7 @@ def agentic_huddle_v2(
 
         if not candidates:
             fb = _make_fallback_plan(question, budget)
+            annotate_expected_impacts(fb)
             return HuddleResponse(
                 stopped_after_rounds=1,
                 transcript=transcript,
@@ -143,6 +146,7 @@ def agentic_huddle_v2(
             pool = scored
             best_idx = pick_best([s["plan"] for s in pool]) if pool else -1
             final_plan = pool[best_idx]["plan"] if best_idx >= 0 else _make_fallback_plan(question, budget)
+            annotate_expected_impacts(final_plan)
             return HuddleResponse(
                 stopped_after_rounds=debate_rounds,
                 transcript=transcript,
@@ -195,6 +199,7 @@ def agentic_huddle_v2(
         pool = refined if refined else scored
         best_idx = pick_best([p["plan"] for p in pool]) if pool else -1
         final_plan = pool[best_idx]["plan"] if best_idx >= 0 else _make_fallback_plan(question, budget)
+        annotate_expected_impacts(final_plan)
 
         return HuddleResponse(
             stopped_after_rounds=debate_rounds,
@@ -211,6 +216,7 @@ def agentic_huddle_v2(
 
     except Exception as e:
         fb = _make_fallback_plan(question, budget)
+        annotate_expected_impacts(fb)
         return HuddleResponse(
             stopped_after_rounds=0,
             transcript=transcript,
