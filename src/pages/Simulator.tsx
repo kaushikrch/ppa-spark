@@ -42,61 +42,7 @@ const Simulator: React.FC = () => {
       setSimulationResult(response.data);
     } catch (error) {
       console.error('Simulation failed:', error);
-      // Calculate elasticity-based impact for demo
-      let totalVolumeImpact = 0;
-      let totalRevenueImpact = 0;
-      let totalMarginImpact = 0;
-      
-      skus.forEach((sku, idx) => {
-        const change_i = priceChanges[sku.id] || 0;
-        if (change_i !== 0 || Object.values(priceChanges).some(v => v !== 0)) {
-          // Own + Cross elasticity volume impact for SKU i
-          const ownImpact = sku.elasticity * change_i;
-
-          // Cross elasticities by brand (negative treated as 0 = no substitution)
-          const crossElasticities: Record<string, Record<string, number>> = {
-            Aurel: { Novis: 0.12, Verra: 0.09, Kairo: 0, Lumio: 0.13 },
-            Novis: { Aurel: 0.15, Verra: 0, Kairo: 0.18, Lumio: 0 },
-            Verra: { Lumio: 0.22, Aurel: 0.09, Novis: 0, Kairo: 0 },
-            Kairo: { Novis: 0.14, Verra: 0.11, Aurel: 0, Lumio: 0.16 },
-            Lumio: { Kairo: 0.16, Aurel: 0.13, Novis: 0, Verra: 0.22 },
-          };
-
-          const crossImpact = skus.reduce((acc, other) => {
-            if (other.id === sku.id) return acc;
-            const pc_j = priceChanges[other.id] || 0;
-            if (pc_j === 0) return acc;
-            const e_ij = Math.max(0, crossElasticities[sku.brand]?.[other.brand] ?? 0);
-            return acc + e_ij * pc_j;
-          }, 0);
-
-          const volumeImpact = ownImpact + crossImpact;
-          // Revenue impact includes price and volume effects
-          const revenueImpact = change_i + volumeImpact;
-          // Margin impact is amplified due to leverage
-          const marginImpact = revenueImpact * 1.8;
-
-          // Equal weighting across SKUs (placeholder for contribution weights)
-          const weight = 1 / skus.length;
-          totalVolumeImpact += volumeImpact * weight;
-          totalRevenueImpact += revenueImpact * weight;
-          totalMarginImpact += marginImpact * weight;
-        }
-      });
-
-      setSimulationResult({
-        agg: [
-          { week: 1, units: 85000 * (1 + totalVolumeImpact), revenue: 12400000 * (1 + totalRevenueImpact), margin: 3100000 * (1 + totalMarginImpact) },
-          { week: 2, units: 87200 * (1 + totalVolumeImpact), revenue: 12750000 * (1 + totalRevenueImpact), margin: 3250000 * (1 + totalMarginImpact) },
-          { week: 3, units: 84500 * (1 + totalVolumeImpact), revenue: 12600000 * (1 + totalRevenueImpact), margin: 3180000 * (1 + totalMarginImpact) },
-          { week: 4, units: 88900 * (1 + totalVolumeImpact), revenue: 13100000 * (1 + totalRevenueImpact), margin: 3420000 * (1 + totalMarginImpact) },
-        ],
-        summary: {
-          volume_change: totalVolumeImpact * 100,
-          revenue_change: totalRevenueImpact * 100,
-          margin_change: totalMarginImpact * 100
-        }
-      });
+      setSimulationResult(null);
     } finally {
       setLoading(false);
     }

@@ -13,22 +13,26 @@ def engine():
 
 
 def to_parquet(df: pd.DataFrame, name: str) -> str:
-    """Write a DataFrame to parquet using pyarrow when available.
+    """Persist a DataFrame to parquet when possible.
 
-    Falls back to pandas' built-in implementation if pyarrow isn't installed.
+    If neither ``pyarrow`` nor ``fastparquet`` is available, fall back to a
+    lightweight CSV dump so data generation still succeeds without optional
+    dependencies.  Returns the path of the written file.
     """
 
     p = PARQUET / f"{name}.parquet"
     try:
-        import pyarrow as pa
-        import pyarrow.parquet as pq
+        import pyarrow as pa  # type: ignore
+        import pyarrow.parquet as pq  # type: ignore
 
         table = pa.Table.from_pandas(df)
         pq.write_table(table, p)
+        return str(p)
     except Exception:
-        # Either pyarrow isn't installed or conversion failed; fall back to pandas.
-        df.to_parquet(p, index=False)
-    return str(p)
+        # ``df.to_parquet`` would still require an engine; use CSV instead.
+        csv_path = PARQUET / f"{name}.csv"
+        df.to_csv(csv_path, index=False)
+        return str(csv_path)
 
 
 def write_table(df: pd.DataFrame, name: str, if_exists: str = "replace") -> None:
