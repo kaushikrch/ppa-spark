@@ -19,6 +19,7 @@ def _latest_price_and_base():
     u = demand[demand.week>=recent_w-8].groupby("sku_id").units.mean().rename("u0")
     df = pd.concat([p, u], axis=1).reset_index().merge(costs, on="sku_id", how="left").merge(elast, on="sku_id", how="left")
     df["own_elast"] = df["own_elast"].fillna(-1.0)
+    df.loc[df["own_elast"].abs() < 1e-4, "own_elast"] = -1.0
     return df
 
 def evaluate_plan(plan: Dict[str, Any]) -> Tuple[Dict[str, float], Dict[str, int]]:

@@ -51,7 +51,8 @@ def _run_optimizer_pulp(max_pct_change_round1=0.20, max_pct_change_round2=0.40, 
         .merge(guard, on="sku_id")
         .merge(elast, on="sku_id", how="left")
     )
-    df["own_elast"].fillna(-1.0, inplace=True)
+    df["own_elast"] = df["own_elast"].fillna(-1.0)
+    df.loc[df["own_elast"].abs() < 1e-4, "own_elast"] = -1.0
 
     max_skus = int(os.getenv("OPTIMIZER_MAX_SKUS", "200"))
     if len(df) > max_skus:
@@ -180,7 +181,8 @@ def _heuristic_optimizer(max_change=0.20):
         .merge(costs, on="sku_id")
         .merge(elast, on="sku_id", how="left")
     )
-    df["own_elast"].fillna(-1.0, inplace=True)
+    df["own_elast"] = df["own_elast"].fillna(-1.0)
+    df.loc[df["own_elast"].abs() < 1e-4, "own_elast"] = -1.0
 
     max_skus = int(os.getenv("OPTIMIZER_MAX_SKUS", "200"))
     if len(df) > max_skus:

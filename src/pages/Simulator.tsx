@@ -54,8 +54,23 @@ const Simulator: React.FC = () => {
   };
 
   const formatPercent = (value: number) => {
-    const sign = value >= 0 ? '+' : '';
-    return `${sign}${value.toFixed(1)}%`;
+    if (!Number.isFinite(value)) {
+      return '0.0%';
+    }
+
+    if (value === 0) {
+      return '0.0%';
+    }
+
+    const sign = value > 0 ? '+' : value < 0 ? '-' : '';
+    const abs = Math.abs(value);
+
+    if (abs < 0.01) {
+      return `${sign}<0.01%`;
+    }
+
+    const decimals = abs < 1 ? 2 : 1;
+    return `${sign}${abs.toFixed(decimals)}%`;
   };
 
   const getElasticityColor = (elasticity: number) => {
