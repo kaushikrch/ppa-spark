@@ -42,6 +42,10 @@ def _price_simulation_frame() -> pd.DataFrame:
         .merge(sku[["sku_id", "brand"]], on="sku_id", how="left")
     )
     df["own_elast"] = df["own_elast"].fillna(-1.0)
+    # Some synthetic elasticities can be exactly zero when the regression
+    # fallback fails.  Treat near-zero values as missing so simulations still
+    # react to price changes instead of showing 0% impact across the UI.
+    df.loc[df["own_elast"].abs() < 1e-4, "own_elast"] = -1.0
     df["cost_per_unit"] = df["cogs_per_unit"].fillna(0.0) + df["logistics_per_unit"].fillna(0.0)
     return df
 

@@ -54,7 +54,62 @@ const OptimizerView: React.FC = () => {
     }
   };
 
-  const formatCurrency = (value: number) => `₹${(value / 1000000).toFixed(1)}M`;
+  const formatCurrency = (value: number) => {
+    if (!Number.isFinite(value)) {
+      return '₹0';
+    }
+
+    const abs = Math.abs(value);
+    const sign = value < 0 ? '-' : '';
+    const withSuffix = (divisor: number, suffix: string, decimals: number) =>
+      `${sign}₹${(abs / divisor).toFixed(decimals)}${suffix}`;
+
+    if (abs === 0) {
+      return '₹0';
+    }
+
+    if (abs < 0.01) {
+      return `${sign}<₹0.01`;
+    }
+
+    if (abs < 1) {
+      return `${sign}₹${abs.toFixed(2)}`;
+    }
+
+    if (abs < 10) {
+      return `${sign}₹${abs.toFixed(2)}`;
+    }
+
+    if (abs < 100) {
+      return `${sign}₹${abs.toFixed(1)}`;
+    }
+
+    if (abs < 1000) {
+      return `${sign}₹${abs.toFixed(0)}`;
+    }
+
+    if (abs < 10000) {
+      return withSuffix(1000, 'K', 2);
+    }
+
+    if (abs < 100000) {
+      return withSuffix(1000, 'K', 1);
+    }
+
+    if (abs < 1000000) {
+      return withSuffix(1000, 'K', 0);
+    }
+
+    if (abs < 10000000) {
+      return withSuffix(1000000, 'M', 2);
+    }
+
+    if (abs < 1000000000) {
+      return withSuffix(1000000, 'M', 1);
+    }
+
+    return withSuffix(1000000000, 'B', 2);
+  };
   const formatPercent = (value: number) => `${(value * 100).toFixed(1)}%`;
   const formatUnits = (value: number) => value.toLocaleString();
 
