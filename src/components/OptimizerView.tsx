@@ -5,6 +5,7 @@ import { Badge } from './ui/badge';
 import { Progress } from './ui/progress';
 import { Play, RotateCcw, TrendingUp, AlertTriangle, CheckCircle, Package } from 'lucide-react';
 import { apiService } from '../lib/api';
+import { formatCurrency, formatPercent, formatUnits } from '../lib/metrics';
 
 interface OptimizerResult {
   solution: Array<{
@@ -53,65 +54,6 @@ const OptimizerView: React.FC = () => {
       setLoading(false);
     }
   };
-
-  const formatCurrency = (value: number) => {
-    if (!Number.isFinite(value)) {
-      return '₹0';
-    }
-
-    const abs = Math.abs(value);
-    const sign = value < 0 ? '-' : '';
-    const withSuffix = (divisor: number, suffix: string, decimals: number) =>
-      `${sign}₹${(abs / divisor).toFixed(decimals)}${suffix}`;
-
-    if (abs === 0) {
-      return '₹0';
-    }
-
-    if (abs < 0.01) {
-      return `${sign}<₹0.01`;
-    }
-
-    if (abs < 1) {
-      return `${sign}₹${abs.toFixed(2)}`;
-    }
-
-    if (abs < 10) {
-      return `${sign}₹${abs.toFixed(2)}`;
-    }
-
-    if (abs < 100) {
-      return `${sign}₹${abs.toFixed(1)}`;
-    }
-
-    if (abs < 1000) {
-      return `${sign}₹${abs.toFixed(0)}`;
-    }
-
-    if (abs < 10000) {
-      return withSuffix(1000, 'K', 2);
-    }
-
-    if (abs < 100000) {
-      return withSuffix(1000, 'K', 1);
-    }
-
-    if (abs < 1000000) {
-      return withSuffix(1000, 'K', 0);
-    }
-
-    if (abs < 10000000) {
-      return withSuffix(1000000, 'M', 2);
-    }
-
-    if (abs < 1000000000) {
-      return withSuffix(1000000, 'M', 1);
-    }
-
-    return withSuffix(1000000000, 'B', 2);
-  };
-  const formatPercent = (value: number) => `${(value * 100).toFixed(1)}%`;
-  const formatUnits = (value: number) => value.toLocaleString();
 
   return (
     <div className="space-y-6">
@@ -211,8 +153,7 @@ const OptimizerView: React.FC = () => {
                     result.kpis.vol_delta >= 0 ? 'text-success' : 'text-destructive'
                   }`}
                 >
-                  {result.kpis.vol_delta >= 0 ? '+' : ''}
-                  {formatUnits(result.kpis.vol_delta)}
+                  {formatUnits(result.kpis.vol_delta, { showSign: true })}
                 </span>
               </div>
               <p className="text-sm text-muted-foreground">
@@ -231,8 +172,7 @@ const OptimizerView: React.FC = () => {
                     result.kpis.rev_delta >= 0 ? 'text-success' : 'text-destructive'
                   }`}
                 >
-                  {result.kpis.rev_delta >= 0 ? '+' : ''}
-                  {formatCurrency(result.kpis.rev_delta)}
+                  {formatCurrency(result.kpis.rev_delta, { showSign: true })}
                 </span>
               </div>
               <p className="text-sm text-muted-foreground">
@@ -252,8 +192,7 @@ const OptimizerView: React.FC = () => {
                     result.kpis.margin_delta >= 0 ? 'text-success' : 'text-destructive'
                   }`}
                 >
-                  {result.kpis.margin_delta >= 0 ? '+' : ''}
-                  {formatCurrency(result.kpis.margin_delta)}
+                  {formatCurrency(result.kpis.margin_delta, { showSign: true })}
                 </span>
               </div>
               <p className="text-sm text-muted-foreground">
@@ -288,7 +227,7 @@ const OptimizerView: React.FC = () => {
                       <div className="flex items-center space-x-4 text-sm text-muted-foreground">
                         <span>Old: ₹{item.p0?.toFixed(2) || '0.00'}</span>
                         <span>New: ₹{item.new_price.toFixed(2)}</span>
-                        <span>Margin: ₹{item.margin.toLocaleString()}</span>
+                        <span>Margin: {formatCurrency(item.margin)}</span>
                       </div>
                     </div>
                     
@@ -296,7 +235,7 @@ const OptimizerView: React.FC = () => {
                       <div className={`text-lg font-bold ${
                         item.pct_change > 0 ? 'text-success' : 'text-destructive'
                       }`}>
-                        {item.pct_change > 0 ? '+' : ''}{formatPercent(item.pct_change)}
+                        {formatPercent(item.pct_change, { fromFraction: true, showSign: true })}
                       </div>
                       <Progress 
                         value={Math.abs(item.pct_change) * 100 / (round === 1 ? 20 : 40)} 

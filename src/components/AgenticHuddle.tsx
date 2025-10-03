@@ -3,6 +3,13 @@ import axios from "axios";
 import api, { API_BASE, REQUEST_TIMEOUT_MS } from "../lib/api";
 import { Card } from "./ui/card";
 import PromptTiles from "./PromptTiles";
+import {
+  formatCurrency,
+  formatKpiValueByKey,
+  formatPercent,
+  formatUnits,
+  humanizeKpiKey,
+} from "../lib/metrics";
 
 type PlanAction = {
   action_type: string;
@@ -70,15 +77,6 @@ export default function AgenticHuddle() {
     Number(import.meta.env.VITE_DEBATE_ROUNDS) || 3,
     3
   );
-
-  const formatNumber = (v?: number) => {
-    if (v === undefined || v === null || isNaN(v)) return "-";
-    const abs = Math.abs(v);
-    if (abs >= 1e9) return `${(v / 1e9).toFixed(2)}B`;
-    if (abs >= 1e6) return `${(v / 1e6).toFixed(2)}M`;
-    if (abs >= 1e3) return `${(v / 1e3).toFixed(2)}K`;
-    return v.toFixed(2);
-  };
 
   const getProgressMessages = (question: string): string[] => {
     const lower = question.toLowerCase();
@@ -372,13 +370,16 @@ export default function AgenticHuddle() {
                                 <td className="p-2">{a.ids?.join(', ')}</td>
                                 <td className="p-2">
                                   {a.magnitude_pct !== undefined
-                                    ? `${(a.magnitude_pct * 100).toFixed(2)}%`
-                                    : '-'}
+                                    ? formatPercent(a.magnitude_pct, {
+                                        fromFraction: true,
+                                        showSign: true,
+                                      })
+                                    : '–'}
                                 </td>
                                 <td className="p-2">
                                   {a.expected_impact
-                                    ? `${a.expected_impact.units ?? '-'} / ${a.expected_impact.revenue ?? '-'} / ${a.expected_impact.margin ?? '-'}`
-                                    : '-'}
+                                    ? `${formatUnits(a.expected_impact.units, { showSign: true })} / ${formatCurrency(a.expected_impact.revenue, { showSign: true })} / ${formatCurrency(a.expected_impact.margin, { showSign: true })}`
+                                    : '–'}
                                 </td>
                               </tr>
                             ))}
@@ -396,10 +397,11 @@ export default function AgenticHuddle() {
                 {t.kpis && (
                   <div className="text-xs mt-2 p-2 bg-primary/5 rounded">
                     <span className="font-medium text-primary">KPIs:</span>
-                    <ul className="list-disc pl-4 mt-1">
+                    <ul className="list-disc pl-4 mt-1 space-y-0.5">
                       {Object.entries(t.kpis).map(([k, v]) => (
                         <li key={k} className="text-foreground">
-                          {k}: {String(v)}
+                          <span className="font-medium">{humanizeKpiKey(k)}:</span>{' '}
+                          <span>{formatKpiValueByKey(k, v)}</span>
                         </li>
                       ))}
                     </ul>
@@ -473,18 +475,18 @@ export default function AgenticHuddle() {
                         </div>
                       </td>
                       <td className="p-3 text-primary-foreground/90 font-mono">
-                        {(a.magnitude_pct * 100).toFixed(1)}%
+                        {formatPercent(a.magnitude_pct, { fromFraction: true, showSign: true })}
                       </td>
                       <td className="p-3 text-primary-foreground/80 text-xs">
-                        <div>U: {formatNumber(a.expected_impact?.units)}</div>
-                        <div>Rev: {formatNumber(a.expected_impact?.revenue)}</div>
-                        <div>Mgn: {formatNumber(a.expected_impact?.margin)}</div>
+                        <div>U: {formatUnits(a.expected_impact?.units, { showSign: true })}</div>
+                        <div>Rev: {formatCurrency(a.expected_impact?.revenue, { showSign: true })}</div>
+                        <div>Mgn: {formatCurrency(a.expected_impact?.margin, { showSign: true })}</div>
                       </td>
                       <td className="p-3 text-primary-foreground/70 text-xs max-w-48">
                         {a.risks?.slice(0, 2).join("; ") || "-"}
                       </td>
                       <td className="p-3 text-primary-foreground/90 font-mono">
-                        {(a.confidence ?? 0).toFixed(2)}
+                        {formatPercent(a.confidence, { fromFraction: true })}
                       </td>
                     </tr>
                   ))}

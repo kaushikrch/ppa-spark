@@ -49,6 +49,7 @@ def _price_simulation_frame() -> pd.DataFrame:
     # react to price changes instead of showing 0% impact across the UI.
     df.loc[df["own_elast"].abs() < 1e-4, "own_elast"] = -1.0
     df["cost_per_unit"] = df["cogs_per_unit"].fillna(0.0) + df["logistics_per_unit"].fillna(0.0)
+    df["cross_elast"] = df["cross_elast_json"].fillna("{}").map(json.loads)
     return df
 
 
@@ -74,7 +75,7 @@ def simulate_price_change(sku_pct_changes: dict, weeks=None, retailer_ids=None):
     df["pct_change"] = df["sku_id"].map(
         lambda k: sku_pct_changes.get(str(k), sku_pct_changes.get(int(k), 0.0))
     )
-    df["pct_change"] = df["pct_change"].fillna(0.0)
+    df["pct_change"] = df["pct_change"].fillna(0.0).astype(float)
     df["new_price"] = df["net_price"] * (1.0 + df["pct_change"])
 
     # own effect driven purely by elasticities.  Use a simple elasticity * % price
@@ -88,34 +89,57 @@ def simulate_price_change(sku_pct_changes: dict, weeks=None, retailer_ids=None):
     own_factor = pd.Series(np.clip(own_factor, a_min=0.0, a_max=None), index=df.index)
 
     # Cross effect: react to brand-level price changes captured in the elasticity model.
-    brand_pct_change = {}
+    weights = df["units"].fillna(0.0)
+    values = df["pct_change"]
+    weighted_change = (values * weights).groupby(df["brand"]).sum()
+    weight_sum = weights.groupby(df["brand"]).sum()
+    brand_means = values.groupby(df["brand"]).mean()
+    brand_pct_change_series = weighted_change.divide(weight_sum.where(weight_sum > 0), fill_value=0.0)
+    brand_pct_change_series = brand_pct_change_series.where(weight_sum > 0, brand_means).fillna(0.0)
+    brand_pct_change = {
+        brand: pct
+        for brand, pct in brand_pct_change_series.items()
+        if not np.isnan(pct)
+    }
+    active_brand_changes = {
+        brand: pct for brand, pct in brand_pct_change.items() if abs(pct) > 1e-12
+    }
 
-    def _weighted_pct_change(group: pd.DataFrame) -> float:
-        weights = group["units"].fillna(0.0).to_numpy()
-        values = group["pct_change"].to_numpy()
-        weight_sum = weights.sum()
-        if weight_sum <= 0:
-            return float(np.nanmean(values)) if len(values) else 0.0
-        return float(np.average(values, weights=weights))
+    if active_brand_changes:
+        cross_lookup = (
+            df[["sku_id", "brand", "cross_elast"]]
+            .drop_duplicates(subset=["sku_id"])
+            .set_index("sku_id")
+        )
+        impact_cache: dict[tuple[str, tuple[tuple[str, float], ...]], float] = {}
 
-    for brand, group in df.groupby("brand"):
-        brand_pct_change[brand] = _weighted_pct_change(group)
+        def _cross_impact(brand: str, cross_dict: dict[str, float]) -> float:
+            if not cross_dict:
+                return 0.0
+            key = (brand, tuple(sorted(cross_dict.items())))
+            cached = impact_cache.get(key)
+            if cached is not None:
+                return cached
+            impact = 0.0
+            for other_brand, elasticity in cross_dict.items():
+                if other_brand == brand:
+                    continue
+                pct = active_brand_changes.get(other_brand)
+                if pct is None or np.isnan(pct):
+                    continue
+                impact += elasticity * pct
+            impact_cache[key] = impact
+            return impact
 
-    cross_elast = df["cross_elast_json"].fillna("{}").map(json.loads)
-    cross_impacts = []
-    for brand, cross_dict in zip(df["brand"], cross_elast):
-        impact = 0.0
-        for other_brand, elasticity in cross_dict.items():
-            if other_brand == brand:
-                continue
-            pct = brand_pct_change.get(other_brand)
-            if pct is None or np.isnan(pct):
-                continue
-            impact += elasticity * pct
-        cross_impacts.append(impact)
+        cross_lookup["cross_impact"] = [
+            _cross_impact(brand, cross_dict)
+            for brand, cross_dict in zip(cross_lookup["brand"], cross_lookup["cross_elast"])
+        ]
+        cross_impacts = df["sku_id"].map(cross_lookup["cross_impact"]).fillna(0.0)
+    else:
+        cross_impacts = pd.Series(0.0, index=df.index)
 
-    cross_factor = pd.Series(1.0 + np.array(cross_impacts), index=df.index)
-    cross_factor = cross_factor.clip(lower=0.0)
+    cross_factor = (1.0 + cross_impacts).clip(lower=0.0)
 
     df["new_units"] = df["units"] * own_factor * cross_factor
     df["new_revenue"] = df["new_units"] * df["new_price"]
