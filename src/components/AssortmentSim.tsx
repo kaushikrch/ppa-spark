@@ -165,7 +165,7 @@ const AssortmentSim: React.FC<AssortmentSimProps> = ({ className = "" }) => {
                     </div>
                     <div className="text-right">
                       <p className="text-sm font-medium text-success">
-                        +{Math.round(Number(sku.volume_gain || 0)).toLocaleString()} units
+                        +{Number(sku.volume_gain || 0).toLocaleString()} units
                       </p>
                       <p className="text-xs text-muted-foreground">
                         New total: {(sku.new_units || sku.units).toLocaleString()}
@@ -176,7 +176,7 @@ const AssortmentSim: React.FC<AssortmentSimProps> = ({ className = "" }) => {
               ))}
               <div className="mt-4 p-3 rounded-lg bg-primary/10 border border-primary/20">
                 <p className="text-sm text-primary font-medium">
-                  Total volume transferred: {Math.round(simulationResult.summary.volume_transferred).toLocaleString()} units
+                  Total volume transferred: {simulationResult.summary.volume_transferred.toLocaleString()} units
                 </p>
               </div>
             </div>
