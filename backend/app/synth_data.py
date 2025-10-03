@@ -237,6 +237,12 @@ def gen_weekly_data(
         write_table(df, name)
         to_parquet(df, name)
 
+    # Refresh memoized tables used by simulators/optimizer so downstream API
+    # calls immediately reflect the newly generated dataset.
+    from .models.cache import invalidate_model_caches
+
+    invalidate_model_caches()
+
     return True
 
 

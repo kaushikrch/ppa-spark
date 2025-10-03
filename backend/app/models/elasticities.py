@@ -62,4 +62,10 @@ def fit_elasticities():
 
     write_table(pd.DataFrame(elast_rows), "elasticities")
     write_table(pd.DataFrame(imp_rows), "attributes_importance")
+
+    # Elasticities feed both the simulator and optimizer; clear cached tables so
+    # subsequent requests recompute with the freshly trained coefficients.
+    from .cache import invalidate_model_caches
+
+    invalidate_model_caches()
     return True
