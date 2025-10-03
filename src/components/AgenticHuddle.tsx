@@ -71,6 +71,15 @@ export default function AgenticHuddle() {
     3
   );
 
+  const formatNumber = (v?: number) => {
+    if (v === undefined || v === null || isNaN(v)) return "-";
+    const abs = Math.abs(v);
+    if (abs >= 1e9) return `${(v / 1e9).toFixed(2)}B`;
+    if (abs >= 1e6) return `${(v / 1e6).toFixed(2)}M`;
+    if (abs >= 1e3) return `${(v / 1e3).toFixed(2)}K`;
+    return v.toFixed(2);
+  };
+
   const getProgressMessages = (question: string): string[] => {
     const lower = question.toLowerCase();
     const msgs = ["Agents are collaborating..."];
@@ -467,9 +476,9 @@ export default function AgenticHuddle() {
                         {(a.magnitude_pct * 100).toFixed(1)}%
                       </td>
                       <td className="p-3 text-primary-foreground/80 text-xs">
-                        <div>U: {a.expected_impact?.units?.toFixed(0) ?? "-"}</div>
-                        <div>Rev: {a.expected_impact?.revenue?.toFixed(0) ?? "-"}</div>
-                        <div>Mgn: {a.expected_impact?.margin?.toFixed(0) ?? "-"}</div>
+                        <div>U: {formatNumber(a.expected_impact?.units)}</div>
+                        <div>Rev: {formatNumber(a.expected_impact?.revenue)}</div>
+                        <div>Mgn: {formatNumber(a.expected_impact?.margin)}</div>
                       </td>
                       <td className="p-3 text-primary-foreground/70 text-xs max-w-48">
                         {a.risks?.slice(0, 2).join("; ") || "-"}

@@ -116,8 +116,9 @@ def simulate_delist(delist_skus: list, weeks=None):
     )
     if not add.empty:
         keep = keep.merge(add, on=["week", "retailer_id", "sku_id"], how="left")
-        keep["new_units"] = keep["units"] + keep["add_units"].fillna(0).astype(int)
-        keep["volume_gain"] = keep["new_units"] - keep["units"]
+        keep["add_units"] = keep["add_units"].fillna(0)
+        keep["new_units"] = keep["units"] + keep["add_units"]
+        keep["volume_gain"] = keep["add_units"]
         keep.drop(columns=["add_units"], inplace=True)
     else:
         keep["new_units"] = keep["units"]
