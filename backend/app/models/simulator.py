@@ -1,6 +1,8 @@
-import pandas as pd
-import numpy as np
+import json
 from functools import lru_cache
+
+import numpy as np
+import pandas as pd
 from ..utils.io import engine
 from ..bootstrap import bootstrap_if_needed
 
@@ -75,14 +77,45 @@ def simulate_price_change(sku_pct_changes: dict, weeks=None, retailer_ids=None):
     df["pct_change"] = df["pct_change"].fillna(0.0)
     df["new_price"] = df["net_price"] * (1.0 + df["pct_change"])
 
-    # own effect driven purely by elasticities
-    price_ratio = np.maximum(df["new_price"], 0.01) / np.maximum(df["net_price"], 0.01)
-    own_factor = np.exp(df["own_elast"] * np.log(price_ratio))
+    # own effect driven purely by elasticities.  Use a simple elasticity * % price
+    # change formulation so a 10% price increase with elasticity -1.24 results in
+    # at least a 12.4% volume decline (instead of the milder change from the
+    # log-log formulation).
+    pct_price_change = df["pct_change"].fillna(0.0)
+    pct_volume_change = df["own_elast"] * pct_price_change
+    own_factor = 1.0 + pct_volume_change
+    # Volumes should not go negative; clamp at zero.
+    own_factor = pd.Series(np.clip(own_factor, a_min=0.0, a_max=None), index=df.index)
 
-    # cross effect: distribute by brand similarity
-    cross_factor = 1.0  # cross effects are neutral
-    # TODO: incorporate brand-level cross effects when similarity weights are defined
-    # (For demo simplicity, we keep cross factor neutral; handled in optimizer)
+    # Cross effect: react to brand-level price changes captured in the elasticity model.
+    brand_pct_change = {}
+
+    def _weighted_pct_change(group: pd.DataFrame) -> float:
+        weights = group["units"].fillna(0.0).to_numpy()
+        values = group["pct_change"].to_numpy()
+        weight_sum = weights.sum()
+        if weight_sum <= 0:
+            return float(np.nanmean(values)) if len(values) else 0.0
+        return float(np.average(values, weights=weights))
+
+    for brand, group in df.groupby("brand"):
+        brand_pct_change[brand] = _weighted_pct_change(group)
+
+    cross_elast = df["cross_elast_json"].fillna("{}").map(json.loads)
+    cross_impacts = []
+    for brand, cross_dict in zip(df["brand"], cross_elast):
+        impact = 0.0
+        for other_brand, elasticity in cross_dict.items():
+            if other_brand == brand:
+                continue
+            pct = brand_pct_change.get(other_brand)
+            if pct is None or np.isnan(pct):
+                continue
+            impact += elasticity * pct
+        cross_impacts.append(impact)
+
+    cross_factor = pd.Series(1.0 + np.array(cross_impacts), index=df.index)
+    cross_factor = cross_factor.clip(lower=0.0)
 
     df["new_units"] = df["units"] * own_factor * cross_factor
     df["new_revenue"] = df["new_units"] * df["new_price"]
@@ -122,14 +155,41 @@ def simulate_delist(delist_skus: list, weeks=None):
         return keep
 
     # Build pairwise similarity between lost and kept SKUs within the same week/retailer
-    lost_pairs = lost[
-        ["week", "retailer_id", "sku_id", "units", "brand", "pack_size_ml", "flavor"]
-    ]
-    keep_pairs = keep[["week", "retailer_id", "sku_id", "brand", "pack_size_ml", "flavor"]]
+    lost_pairs = (
+        lost[["week", "retailer_id", "sku_id", "units", "brand", "pack_size_ml", "flavor"]]
+        .rename(columns={
+            "sku_id": "sku_id_lost",
+            "units": "lost_units",
+            "brand": "brand_lost",
+            "pack_size_ml": "pack_size_ml_lost",
+            "flavor": "flavor_lost",
+        })
+        .copy()
+    )
+    keep_pairs = (
+        keep[
+            [
+                "week",
+                "retailer_id",
+                "sku_id",
+                "units",
+                "brand",
+                "pack_size_ml",
+                "flavor",
+            ]
+        ]
+        .rename(columns={
+            "sku_id": "sku_id_keep",
+            "units": "keep_units",
+            "brand": "brand_keep",
+            "pack_size_ml": "pack_size_ml_keep",
+            "flavor": "flavor_keep",
+        })
+        .copy()
+    )
     pairs = lost_pairs.merge(
         keep_pairs,
         on=["week", "retailer_id"],
-        suffixes=("_lost", "_keep"),
     )
     # similarity: same brand (0.6), same pack_size (0.3), same flavor (0.1)
     pairs["sim"] = (
@@ -138,13 +198,26 @@ def simulate_delist(delist_skus: list, weeks=None):
         + 0.1 * (pairs.flavor_lost == pairs.flavor_keep).astype(float)
     )
     # take top-3 similar keep SKUs for each lost SKU
-    pairs = pairs.sort_values(["week", "retailer_id", "sku_id_lost", "sim"], ascending=[True, True, True, False])
+    pairs = pairs.sort_values(
+        ["week", "retailer_id", "sku_id_lost", "sim"],
+        ascending=[True, True, True, False],
+    )
     pairs = pairs.groupby(["week", "retailer_id", "sku_id_lost"]).head(3)
     # allocate lost volume proportionally to similarity
+    pairs["sim_weight"] = pairs["sim"].clip(lower=0)
+    pairs["volume_weight"] = pairs["keep_units"].clip(lower=0).fillna(0)
+    pairs["weight"] = pairs["sim_weight"] * pairs["volume_weight"]
+    group_keys = ["week", "retailer_id", "sku_id_lost"]
+    weight_sum = pairs.groupby(group_keys)["weight"].transform("sum")
+    fallback = weight_sum <= 0
+    if fallback.any():
+        sim_sum = pairs.groupby(group_keys)["sim_weight"].transform("sum")
+        pairs.loc[fallback, "weight"] = pairs.loc[fallback, "sim_weight"]
+        weight_sum = weight_sum.mask(fallback, sim_sum)
+    pairs["weight"] = pairs["weight"].fillna(0)
+    weight_sum = weight_sum.replace(0, np.nan)
     pairs["alloc"] = (
-        pairs.units
-        * pairs.sim
-        / pairs.groupby(["week", "retailer_id", "sku_id_lost"]).sim.transform("sum")
+        pairs["lost_units"].fillna(0) * pairs["weight"] / weight_sum
     ).fillna(0)
 
     add = (
