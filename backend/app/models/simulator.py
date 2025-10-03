@@ -87,10 +87,19 @@ def simulate_price_change(sku_pct_changes: dict, weeks=None, retailer_ids=None):
     df["new_units"] = df["units"] * own_factor * cross_factor
     df["new_revenue"] = df["new_units"] * df["new_price"]
     df["margin"] = (df["new_price"] - df["cost_per_unit"]) * df["new_units"]
+    df["base_revenue"] = df["net_price"] * df["units"]
+    df["base_margin"] = (df["net_price"] - df["cost_per_unit"]) * df["units"]
 
     agg = (
         df.groupby(["week"])
-        .agg(units=("new_units", "sum"), revenue=("new_revenue", "sum"), margin=("margin", "sum"))
+        .agg(
+            units=("new_units", "sum"),
+            revenue=("new_revenue", "sum"),
+            margin=("margin", "sum"),
+            base_units=("units", "sum"),
+            base_revenue=("base_revenue", "sum"),
+            base_margin=("base_margin", "sum"),
+        )
         .reset_index()
     )
     return agg, df

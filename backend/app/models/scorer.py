@@ -52,10 +52,14 @@ def evaluate_plan(plan: Dict[str, Any]) -> Tuple[Dict[str, float], Dict[str, int
 
     kpi_total = {"units": 0.0, "revenue": 0.0, "margin": 0.0}
     if pct_changes:
-        agg, _ = simulate_price_change({k: v for k,v in pct_changes.items()})
-        kpi_total["units"] += float(agg["units"].mean())
-        kpi_total["revenue"] += float(agg["revenue"].mean())
-        kpi_total["margin"] += float(agg["margin"].mean())
+        agg, _ = simulate_price_change({k: v for k, v in pct_changes.items()})
+        if not agg.empty:
+            units_delta = agg["units"] - agg.get("base_units", 0.0)
+            revenue_delta = agg["revenue"] - agg.get("base_revenue", 0.0)
+            margin_delta = agg["margin"] - agg.get("base_margin", 0.0)
+            kpi_total["units"] += float(units_delta.mean())
+            kpi_total["revenue"] += float(revenue_delta.mean())
+            kpi_total["margin"] += float(margin_delta.mean())
 
     if delists:
         keep = simulate_delist(delists)
