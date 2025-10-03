@@ -2,6 +2,7 @@ import React from 'react';
 import { Card } from './ui/card';
 import { TrendingUp, TrendingDown, DollarSign, Package, Target, Zap } from 'lucide-react';
 import { calculateTrend, formatChange } from '../lib/kpi';
+import { formatCurrency, formatPercent, formatUnits } from '../lib/metrics';
 
 interface KPICardProps {
   title: string;
@@ -37,65 +38,81 @@ const KPICard: React.FC<KPICardProps> = ({ title, current, previous, formatter, 
   );
 };
 
+type KPIKeys = 'revenue' | 'volume' | 'margin' | 'gm_percent' | 'spend';
+
+type KPIMap = Record<KPIKeys, number>;
+
 interface KPICardsProps {
-  data?: {
-    revenue: number;
-    volume: number;
-    margin: number;
-    gm_percent: number;
-    spend: number;
-  };
+  data?: Partial<KPIMap>;
+  previous?: Partial<KPIMap>;
 }
 
-const KPICards: React.FC<KPICardsProps> = ({ data }) => {
-  const baseline = {
-    revenue: 12500000,
-    volume: 850000,
-    margin: 3250000,
-    gm_percent: 26.8,
-    spend: 950000
-  };
-  const kpis = data || baseline;
+const defaultCurrent: KPIMap = {
+  revenue: 12_800_000,
+  volume: 872_000,
+  margin: 3_380_000,
+  gm_percent: 27.4,
+  spend: 925_000,
+};
 
-  const formatCurrency = (value: number) => `₹${(value / 1000000).toFixed(1)}M`;
-  const formatUnits = (value: number) => `${(value / 1000).toFixed(0)}K`;
-  const formatPercent = (value: number) => `${value.toFixed(1)}%`;
+const defaultPrevious: KPIMap = {
+  revenue: 12_050_000,
+  volume: 838_000,
+  margin: 3_210_000,
+  gm_percent: 26.1,
+  spend: 960_000,
+};
+
+const resolveKpis = (
+  overrides: Partial<KPIMap> | undefined,
+  fallback: KPIMap,
+): KPIMap => ({
+  revenue: overrides?.revenue ?? fallback.revenue,
+  volume: overrides?.volume ?? fallback.volume,
+  margin: overrides?.margin ?? fallback.margin,
+  gm_percent: overrides?.gm_percent ?? fallback.gm_percent,
+  spend: overrides?.spend ?? fallback.spend,
+});
+
+const KPICards: React.FC<KPICardsProps> = ({ data, previous }) => {
+  const currentKpis = resolveKpis(data, defaultCurrent);
+  const previousKpis = resolveKpis(previous, defaultPrevious);
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
       <KPICard
         title="Revenue"
-        current={kpis.revenue}
-        previous={baseline.revenue}
-        formatter={formatCurrency}
+        current={currentKpis.revenue}
+        previous={previousKpis.revenue}
+        formatter={(v) => formatCurrency(v)}
         icon={<DollarSign className="h-5 w-5" />}
       />
       <KPICard
         title="Volume"
-        current={kpis.volume}
-        previous={baseline.volume}
-        formatter={formatUnits}
+        current={currentKpis.volume}
+        previous={previousKpis.volume}
+        formatter={(v) => formatUnits(v)}
         icon={<Package className="h-5 w-5" />}
       />
       <KPICard
         title="Margin"
-        current={kpis.margin}
-        previous={baseline.margin}
-        formatter={formatCurrency}
+        current={currentKpis.margin}
+        previous={previousKpis.margin}
+        formatter={(v) => formatCurrency(v)}
         icon={<Target className="h-5 w-5" />}
       />
       <KPICard
         title="GM%"
-        current={kpis.gm_percent}
-        previous={baseline.gm_percent}
-        formatter={formatPercent}
+        current={currentKpis.gm_percent}
+        previous={previousKpis.gm_percent}
+        formatter={(v) => formatPercent(v)}
         icon={<TrendingUp className="h-5 w-5" />}
       />
       <KPICard
         title="Trade Spend"
-        current={kpis.spend}
-        previous={baseline.spend}
-        formatter={formatCurrency}
+        current={currentKpis.spend}
+        previous={previousKpis.spend}
+        formatter={(v) => formatCurrency(v)}
         icon={<Zap className="h-5 w-5" />}
       />
     </div>

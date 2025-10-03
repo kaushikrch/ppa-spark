@@ -8,6 +8,7 @@ import ChartWithInsight from '../components/ChartWithInsight';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { Play, RotateCcw, TrendingUp, TrendingDown, DollarSign, Package } from 'lucide-react';
 import { apiService, SimulationResult } from '../lib/api';
+import { formatPercent } from '../lib/metrics';
 
 const Simulator: React.FC = () => {
   const [priceChanges, setPriceChanges] = useState<Record<string, number>>({});
@@ -51,26 +52,6 @@ const Simulator: React.FC = () => {
   const resetSimulation = () => {
     setPriceChanges({});
     setSimulationResult(null);
-  };
-
-  const formatPercent = (value: number) => {
-    if (!Number.isFinite(value)) {
-      return '0.0%';
-    }
-
-    if (value === 0) {
-      return '0.0%';
-    }
-
-    const sign = value > 0 ? '+' : value < 0 ? '-' : '';
-    const abs = Math.abs(value);
-
-    if (abs < 0.01) {
-      return `${sign}<0.01%`;
-    }
-
-    const decimals = abs < 1 ? 2 : 1;
-    return `${sign}${abs.toFixed(decimals)}%`;
   };
 
   const getElasticityColor = (elasticity: number) => {
@@ -176,7 +157,7 @@ const Simulator: React.FC = () => {
                         ₹{sku.currentPrice.toFixed(2)} → ₹{newPrice.toFixed(2)}
                       </div>
                       <div className={`text-sm font-medium ${change >= 0 ? 'text-success' : 'text-destructive'}`}>
-                        {formatPercent(change * 100)}
+                        {formatPercent(change, { fromFraction: true, showSign: true })}
                       </div>
                     </div>
                   </div>
@@ -212,8 +193,8 @@ const Simulator: React.FC = () => {
                 <Package className="h-6 w-6 text-primary" />
                 <h3 className="font-semibold text-foreground">Volume Impact</h3>
               </div>
-              <div className={`text-2xl font-bold mb-2 ${simulationResult.summary.volume_change >= 0 ? 'text-success' : 'text-destructive'}`}>
-                {formatPercent(Number(simulationResult.summary.volume_change))}
+              <div className={`text-2xl font-bold mb-2 ${(simulationResult.summary?.volume_change ?? 0) >= 0 ? 'text-success' : 'text-destructive'}`}>
+                {formatPercent(simulationResult.summary?.volume_change, { showSign: true })}
               </div>
               <p className="text-sm text-muted-foreground">
                 Expected volume change from price adjustments
@@ -225,8 +206,8 @@ const Simulator: React.FC = () => {
                 <DollarSign className="h-6 w-6 text-success" />
                 <h3 className="font-semibold text-foreground">Revenue Impact</h3>
               </div>
-              <div className={`text-2xl font-bold mb-2 ${simulationResult.summary.revenue_change >= 0 ? 'text-success' : 'text-destructive'}`}>
-                {formatPercent(simulationResult.summary.revenue_change)}
+              <div className={`text-2xl font-bold mb-2 ${(simulationResult.summary?.revenue_change ?? 0) >= 0 ? 'text-success' : 'text-destructive'}`}>
+                {formatPercent(simulationResult.summary?.revenue_change, { showSign: true })}
               </div>
               <p className="text-sm text-muted-foreground">
                 Net revenue effect including volume response
@@ -238,8 +219,8 @@ const Simulator: React.FC = () => {
                 <TrendingUp className="h-6 w-6 text-success" />
                 <h3 className="font-semibold text-foreground">Margin Impact</h3>
               </div>
-              <div className={`text-2xl font-bold mb-2 ${simulationResult.summary.margin_change >= 0 ? 'text-success' : 'text-destructive'}`}>
-                {formatPercent(simulationResult.summary.margin_change)}
+              <div className={`text-2xl font-bold mb-2 ${(simulationResult.summary?.margin_change ?? 0) >= 0 ? 'text-success' : 'text-destructive'}`}>
+                {formatPercent(simulationResult.summary?.margin_change, { showSign: true })}
               </div>
               <p className="text-sm text-muted-foreground">
                 Bottom-line margin improvement
