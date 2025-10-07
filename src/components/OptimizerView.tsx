@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import { Card } from './ui/card';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
@@ -36,6 +37,7 @@ const OptimizerView: React.FC = () => {
   const [round, setRound] = useState<1 | 2>(1);
   const [result, setResult] = useState<OptimizerResult | null>(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string>('');
 
   useEffect(() => {
     // Clear previous results when switching rounds
@@ -44,12 +46,23 @@ const OptimizerView: React.FC = () => {
 
   const runOptimization = async () => {
     setLoading(true);
+    setError('');
     try {
       const response = await apiService.runOptimizer(round);
       setResult(response.data);
+      setError('');
     } catch (error) {
       console.error('Optimization failed:', error);
-      setResult(null);
+      if (axios.isAxiosError(error)) {
+        const data = error.response?.data as { detail?: string; message?: string } | undefined;
+        const status = error.response?.status;
+        const message = data?.detail || data?.message || error.message;
+        setError(status ? `${status}: ${message}` : message);
+      } else if (error instanceof Error) {
+        setError(error.message);
+      } else {
+        setError('Unable to run optimizer. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
@@ -145,6 +158,15 @@ const OptimizerView: React.FC = () => {
           </div>
         </div>
       </Card>
+
+      {error && (
+        <Card className="p-4 bg-destructive/10 border border-destructive/40 text-destructive">
+          <div className="text-sm font-medium">{error}</div>
+          <div className="text-xs text-muted-foreground mt-1">
+            Verify the optimization API is reachable. The most recent successful recommendation stays visible below.
+          </div>
+        </Card>
+      )}
 
       {/* Results */}
       {result && (

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import axios from 'axios';
 import { Card } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
@@ -16,6 +17,7 @@ const Simulator: React.FC = () => {
   const [selectedChannel, setSelectedChannel] = useState<string>('All');
   const [simulationResult, setSimulationResult] = useState<SimulationResult | null>(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string>('');
 
   // Mock SKU data for controls
   const skus = [
@@ -38,12 +40,23 @@ const Simulator: React.FC = () => {
 
   const runSimulation = async () => {
     setLoading(true);
+    setError('');
     try {
       const response = await apiService.simulatePrice(priceChanges);
       setSimulationResult(response.data);
+      setError('');
     } catch (error) {
       console.error('Simulation failed:', error);
-      setSimulationResult(null);
+      if (axios.isAxiosError(error)) {
+        const data = error.response?.data as { detail?: string; message?: string } | undefined;
+        const status = error.response?.status;
+        const message = data?.detail || data?.message || error.message;
+        setError(status ? `${status}: ${message}` : message);
+      } else if (error instanceof Error) {
+        setError(error.message);
+      } else {
+        setError('Unable to run simulation. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
@@ -52,6 +65,7 @@ const Simulator: React.FC = () => {
   const resetSimulation = () => {
     setPriceChanges({});
     setSimulationResult(null);
+    setError('');
   };
 
   const getElasticityColor = (elasticity: number) => {
@@ -182,6 +196,15 @@ const Simulator: React.FC = () => {
           </div>
         </Card>
       </div>
+
+      {error && (
+        <Card className="p-4 bg-destructive/10 border border-destructive/40 text-destructive">
+          <div className="text-sm font-medium">{error}</div>
+          <div className="text-xs text-muted-foreground mt-1">
+            Check that the API is reachable and try again. Previous results remain visible below.
+          </div>
+        </Card>
+      )}
 
       {/* Results */}
       {simulationResult && (

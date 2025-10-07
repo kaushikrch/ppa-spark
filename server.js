@@ -13,14 +13,17 @@ const REQUEST_TIMEOUT_MS = Number(process.env.REQUEST_TIMEOUT_MS) || 300000;
 // API_URL must be the Cloud Run URL of the FastAPI service (no trailing slash)
 const API_URL = process.env.API_URL;
 if (!API_URL) {
-  console.warn("WARNING: API_URL env var not set; /api proxy will use localhost:8080");
+  console.error(
+    "ERROR: API_URL env var is required; set it to your FastAPI service URL"
+  );
+  process.exit(1);
 }
 
 // Proxy /api -> FastAPI
 app.use(
   "/api",
   createProxyMiddleware({
-    target: API_URL || "http://localhost:8080",
+    target: API_URL,
     changeOrigin: true,
     xfwd: true,
     pathRewrite: { "^/api": "" },
@@ -42,9 +45,7 @@ app.use(express.static(DIST));
 app.get("*", (_, res) => res.sendFile(path.join(DIST, "index.html")));
 
 const port = process.env.PORT || 3000;
-app.listen(port, '0.0.0.0', () =>
-  console.log(
-    `UI listening on ${port}; API proxy -> ${API_URL || "http://localhost:8080"}`
-  )
+app.listen(port, "0.0.0.0", () =>
+  console.log(`UI listening on ${port}; API proxy -> ${API_URL}`)
 );
 
