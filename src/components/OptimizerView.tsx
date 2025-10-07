@@ -55,6 +55,16 @@ const OptimizerView: React.FC = () => {
     }
   };
 
+  const pctChange = (delta: number, base: number) => {
+    if (!base || !Number.isFinite(base)) return 0;
+    return delta / base;
+  };
+
+  const summary = result?.kpis;
+  const volPct = summary ? pctChange(summary.vol_delta, summary.vol_base) : 0;
+  const revPct = summary ? pctChange(summary.rev_delta, summary.rev_base) : 0;
+  const marginPct = summary ? pctChange(summary.margin_delta, summary.margin_base) : 0;
+
   return (
     <div className="space-y-6">
       {/* Control Panel */}
@@ -146,18 +156,18 @@ const OptimizerView: React.FC = () => {
                 <Package className="h-5 w-5 text-primary" />
                 <h4 className="font-semibold text-foreground">Volume Impact</h4>
               </div>
-              <div className="text-2xl font-bold text-foreground mb-2 flex items-baseline space-x-2">
+              <div className="text-2xl font-bold text-foreground mb-1 flex items-baseline space-x-2">
                 <span>{formatUnits(result.kpis.vol)}</span>
                 <span
                   className={`text-sm ${
-                    result.kpis.vol_delta >= 0 ? 'text-success' : 'text-destructive'
+                    volPct >= 0 ? 'text-success' : 'text-destructive'
                   }`}
                 >
-                  {formatUnits(result.kpis.vol_delta, { showSign: true })}
+                  {formatPercent(volPct, { fromFraction: true, showSign: true })}
                 </span>
               </div>
               <p className="text-sm text-muted-foreground">
-                Baseline: {formatUnits(result.kpis.vol_base)}
+                Δ {formatUnits(result.kpis.vol_delta, { showSign: true })} vs baseline {formatUnits(result.kpis.vol_base)}
               </p>
             </Card>
             <Card className="p-6 bg-gradient-secondary border-0 shadow-elegant">
@@ -165,38 +175,38 @@ const OptimizerView: React.FC = () => {
                 <TrendingUp className="h-5 w-5 text-success" />
                 <h4 className="font-semibold text-foreground">Revenue Impact</h4>
               </div>
-              <div className="text-2xl font-bold text-foreground mb-2 flex items-baseline space-x-2">
+              <div className="text-2xl font-bold text-foreground mb-1 flex items-baseline space-x-2">
                 <span>{formatCurrency(result.kpis.rev)}</span>
                 <span
                   className={`text-sm ${
-                    result.kpis.rev_delta >= 0 ? 'text-success' : 'text-destructive'
+                    revPct >= 0 ? 'text-success' : 'text-destructive'
                   }`}
                 >
-                  {formatCurrency(result.kpis.rev_delta, { showSign: true })}
+                  {formatPercent(revPct, { fromFraction: true, showSign: true })}
                 </span>
               </div>
               <p className="text-sm text-muted-foreground">
-                Baseline: {formatCurrency(result.kpis.rev_base)}
+                Δ {formatCurrency(result.kpis.rev_delta, { showSign: true })} vs baseline {formatCurrency(result.kpis.rev_base)}
               </p>
             </Card>
-            
+
             <Card className="p-6 bg-gradient-secondary border-0 shadow-elegant">
               <div className="flex items-center space-x-3 mb-4">
                 <CheckCircle className="h-5 w-5 text-success" />
                 <h4 className="font-semibold text-foreground">Margin Improvement</h4>
               </div>
-              <div className="text-2xl font-bold text-foreground mb-2 flex items-baseline space-x-2">
+              <div className="text-2xl font-bold text-foreground mb-1 flex items-baseline space-x-2">
                 <span>{formatCurrency(result.kpis.margin)}</span>
                 <span
                   className={`text-sm ${
-                    result.kpis.margin_delta >= 0 ? 'text-success' : 'text-destructive'
+                    marginPct >= 0 ? 'text-success' : 'text-destructive'
                   }`}
                 >
-                  {formatCurrency(result.kpis.margin_delta, { showSign: true })}
+                  {formatPercent(marginPct, { fromFraction: true, showSign: true })}
                 </span>
               </div>
               <p className="text-sm text-muted-foreground">
-                Baseline: {formatCurrency(result.kpis.margin_base)}
+                Δ {formatCurrency(result.kpis.margin_delta, { showSign: true })} vs baseline {formatCurrency(result.kpis.margin_base)}
               </p>
             </Card>
           </div>

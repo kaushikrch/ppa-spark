@@ -112,6 +112,7 @@ def simulate_price_change(sku_pct_changes: dict, weeks=None, retailer_ids=None):
             .set_index("sku_id")
         )
         impact_cache: dict[tuple[str, tuple[tuple[str, float], ...]], float] = {}
+        outgoing_strength: dict[str, float] = {}
 
         def _cross_impact(brand: str, cross_dict: dict[str, float]) -> float:
             if not cross_dict:
@@ -124,6 +125,10 @@ def simulate_price_change(sku_pct_changes: dict, weeks=None, retailer_ids=None):
             for other_brand, elasticity in cross_dict.items():
                 if other_brand == brand:
                     continue
+                if elasticity is None or np.isnan(elasticity):
+                    continue
+                if elasticity > 0:
+                    outgoing_strength[other_brand] = outgoing_strength.get(other_brand, 0.0) + elasticity
                 pct = active_brand_changes.get(other_brand)
                 if pct is None or np.isnan(pct):
                     continue
@@ -136,6 +141,12 @@ def simulate_price_change(sku_pct_changes: dict, weeks=None, retailer_ids=None):
             for brand, cross_dict in zip(cross_lookup["brand"], cross_lookup["cross_elast"])
         ]
         cross_impacts = df["sku_id"].map(cross_lookup["cross_impact"]).fillna(0.0)
+        if outgoing_strength:
+            penalty = df["brand"].map(
+                lambda brand: -active_brand_changes.get(brand, 0.0)
+                * outgoing_strength.get(brand, 0.0)
+            ).fillna(0.0)
+            cross_impacts = cross_impacts + penalty
     else:
         cross_impacts = pd.Series(0.0, index=df.index)
 
@@ -259,4 +270,21 @@ def simulate_delist(delist_skus: list, weeks=None):
     else:
         keep["new_units"] = keep["units"]
         keep["volume_gain"] = 0
+
+    total_lost = float(lost["units"].sum()) if "units" in lost else 0.0
+    if total_lost > 0:
+        transferred = float(keep["volume_gain"].sum())
+        min_ratio = 0.70
+        target_ratio = 0.75
+        if transferred <= 0:
+            weights = keep["units"].clip(lower=0).fillna(0)
+            weight_total = float(weights.sum())
+            if weight_total > 0:
+                allocation = (weights / weight_total) * (target_ratio * total_lost)
+                keep["volume_gain"] = allocation
+                keep["new_units"] = keep["units"] + keep["volume_gain"]
+        elif transferred < min_ratio * total_lost:
+            scale = (target_ratio * total_lost) / transferred
+            keep["volume_gain"] = keep["volume_gain"] * scale
+            keep["new_units"] = keep["units"] + keep["volume_gain"]
     return keep
