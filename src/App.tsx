@@ -31,7 +31,7 @@ const Navigation = () => {
     { path: "/assortment", label: "Assortment", icon: Package },
     { path: "/simulator", label: "Simulator", icon: Settings },
     { path: "/optimizer", label: "Optimizer", icon: Zap },
-    { path: "/huddle", label: "AI Huddle", icon: Zap },
+    { path: "/huddle", label: "Agentic Huddle", icon: Zap },
     { path: "/rag", label: "RAG Search", icon: Search },
     { path: "/decisions", label: "Decisions", icon: FileText },
   ];

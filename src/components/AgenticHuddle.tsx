@@ -69,7 +69,7 @@ export default function AgenticHuddle() {
   const [runDemoOnFail, setRunDemoOnFail] = useState(false);
   const [progress, setProgress] = useState<string[]>([]);
   const [progressMessages, setProgressMessages] = useState<string[]>([
-    "Agents are collaborating...",
+    "Agentic collaborators syncing...",
   ]);
 
   // Cap debate rounds at 3 to avoid infinite collaboration
@@ -78,9 +78,17 @@ export default function AgenticHuddle() {
     3
   );
 
+  const formatActionPercent = (value?: number, showSign: boolean = false) => {
+    if (value === null || value === undefined) return "–";
+    const numeric = Number(value);
+    if (!Number.isFinite(numeric)) return "–";
+    const treatAsFraction = Math.abs(numeric) <= 1.5;
+    return formatPercent(numeric, { fromFraction: treatAsFraction, showSign });
+  };
+
   const getProgressMessages = (question: string): string[] => {
     const lower = question.toLowerCase();
-    const msgs = ["Agents are collaborating..."];
+    const msgs = ["Agentic collaborators syncing..."];
     if (lower.includes("price"))
       msgs.push("Pricing Analyst is evaluating pricing scenarios...");
     if (lower.includes("demand") || lower.includes("supply"))
@@ -257,7 +265,7 @@ export default function AgenticHuddle() {
               disabled={!q || loading}
               className="px-6 py-3 rounded-xl bg-primary text-primary-foreground font-medium disabled:opacity-50 hover:bg-primary/90 transition-colors duration-200"
             >
-              {loading ? "Huddle Running..." : "Start Huddle"}
+              {loading ? "Huddle Running..." : "Start Agentic Huddle"}
             </button>
             <details className="rounded-lg p-3 bg-muted">
               <summary className="cursor-pointer text-sm text-muted-foreground">Advanced API settings</summary>
@@ -322,7 +330,7 @@ export default function AgenticHuddle() {
       {loading && (
         <Card className="p-6 bg-background/50 border">
           <div className="animate-pulse text-sm text-muted-foreground mb-2">
-            Agents are collaborating...
+            Agentic collaborators syncing...
           </div>
           <ul className="text-xs text-foreground list-disc list-inside space-y-1">
             {progress.map((p, i) => (
@@ -340,7 +348,7 @@ export default function AgenticHuddle() {
       {/* Transcript */}
       {resp?.transcript && (
         <Card className="p-6 bg-background border shadow-elegant">
-          <div className="text-lg font-semibold mb-4 text-foreground">Debate Transcript (3 rounds max)</div>
+          <div className="text-lg font-semibold mb-4 text-foreground">Agentic Huddle Transcript (max 3 rounds)</div>
           <div className="space-y-3">
             {resp.transcript.map((t: HuddleTranscriptEntry, idx: number) => (
               <div key={idx} className="p-4 bg-muted rounded-xl border">
@@ -369,12 +377,7 @@ export default function AgenticHuddle() {
                                 <td className="p-2">{a.action_type}</td>
                                 <td className="p-2">{a.ids?.join(', ')}</td>
                                 <td className="p-2">
-                                  {a.magnitude_pct !== undefined
-                                    ? formatPercent(a.magnitude_pct, {
-                                        fromFraction: true,
-                                        showSign: true,
-                                      })
-                                    : '–'}
+                                  {formatActionPercent(a.magnitude_pct, true)}
                                 </td>
                                 <td className="p-2">
                                   {a.expected_impact
@@ -429,7 +432,7 @@ export default function AgenticHuddle() {
       {FinalPlan && (
         <Card className="p-6 bg-gradient-primary border-0 shadow-purple">
           <div className="text-xl font-bold mb-4 text-primary-foreground">
-            Final Action Plan: {FinalPlan.plan_name}
+            Agentic Decision Blueprint: {FinalPlan.plan_name}
           </div>
           
           {resp?.error && (
@@ -475,7 +478,7 @@ export default function AgenticHuddle() {
                         </div>
                       </td>
                       <td className="p-3 text-primary-foreground/90 font-mono">
-                        {formatPercent(a.magnitude_pct, { fromFraction: true, showSign: true })}
+                        {formatActionPercent(a.magnitude_pct, true)}
                       </td>
                       <td className="p-3 text-primary-foreground/80 text-xs">
                         <div>U: {formatUnits(a.expected_impact?.units, { showSign: true })}</div>
