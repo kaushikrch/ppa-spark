@@ -64,9 +64,6 @@ export default function AgenticHuddle() {
   const [apiToken, setApiToken] = useState<string>(
     localStorage.getItem("API_TOKEN") || ""
   );
-  const [demoReady, setDemoReady] = useState(false);
-  // When a prompt tile triggers the huddle we auto-run a demo on failure
-  const [runDemoOnFail, setRunDemoOnFail] = useState(false);
   const [progress, setProgress] = useState<string[]>([]);
   const [progressMessages, setProgressMessages] = useState<string[]>([
     "Agentic collaborators syncing...",
@@ -142,16 +139,10 @@ export default function AgenticHuddle() {
         }
       }
       const errMsg = status ? `${status}: ${msg}` : msg;
-      if (runDemoOnFail) {
-        runDemo(false);
-        setError(`${errMsg} — showing demo results`);
-      } else {
-        setError(errMsg);
-        setDemoReady(true);
-      }
+      runDemo(false);
+      setError(`${errMsg} — showing demo results`);
     } finally {
       setLoading(false);
-      setRunDemoOnFail(false);
       setProgress([]);
     }
   };
@@ -221,7 +212,6 @@ export default function AgenticHuddle() {
   };
 
   const handleTileClick = (question: string) => {
-    setRunDemoOnFail(true);
     // Directly start the huddle with the clicked tile's question
     start(question);
   };
@@ -318,12 +308,9 @@ export default function AgenticHuddle() {
       </Card>
 
       {error && (
-        <Card className="p-4 bg-destructive/10 border-destructive/20 space-y-3">
+        <Card className="p-4 bg-destructive/10 border-destructive/20 space-y-2">
           <div className="text-destructive text-sm font-medium">{error}</div>
-          <div className="text-xs text-muted-foreground">API base: <span className="font-mono">{API_BASE}</span>. Check Advanced API settings above or try Demo.</div>
-          {demoReady && (
-            <button onClick={runDemo} className="px-3 py-2 rounded-md bg-primary text-primary-foreground w-fit">Run Demo Huddle</button>
-          )}
+          <div className="text-xs text-muted-foreground">API base: <span className="font-mono">{API_BASE}</span>. Adjust settings above or retry once the service is healthy.</div>
         </Card>
       )}
 
